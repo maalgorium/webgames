@@ -1,0 +1,1148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Puzzle Game</title>
+    <style>
+      :root {
+        --bg: #f4f1e7;
+        --bg-2: #e6efe6;
+        --ink: #1c1d1a;
+        --muted: #6c6a61;
+        --accent: #d96b3f;
+        --accent-2: #1f4f5f;
+        --card: rgba(255, 255, 255, 0.82);
+        --line: rgba(31, 79, 95, 0.22);
+        --shadow: 0 18px 40px rgba(20, 28, 34, 0.16);
+        --piece-shadow: 0 16px 28px rgba(18, 22, 26, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Manrope", "Trebuchet MS", "Verdana", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, #fff9ee 0%, var(--bg) 48%),
+          linear-gradient(120deg, #f3e7d8 0%, var(--bg-2) 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 10% 20%, rgba(217, 107, 63, 0.18), transparent 40%),
+          radial-gradient(circle at 86% 10%, rgba(31, 79, 95, 0.12), transparent 35%),
+          radial-gradient(circle at 70% 80%, rgba(117, 179, 129, 0.18), transparent 45%);
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .page {
+        max-width: clamp(0px, 94vw, 1500px);
+        margin: 0 auto;
+        padding: 28px 22px 48px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .top-bar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        background: var(--card);
+        border-radius: 20px;
+        padding: 18px 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .title-block h1 {
+        margin: 0 0 6px;
+        font-family: "Fraunces", "Palatino", "Georgia", serif;
+        font-size: clamp(1.6rem, 3vw, 2.6rem);
+        letter-spacing: 0.04em;
+      }
+
+      .title-block p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .stat {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--accent-2);
+      }
+
+      button {
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button.secondary {
+        background: rgba(31, 79, 95, 0.12);
+        color: var(--accent-2);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(217, 107, 63, 0.3);
+      }
+
+      button.secondary:hover {
+        box-shadow: 0 8px 18px rgba(31, 79, 95, 0.2);
+      }
+
+      .gallery-panel {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 14px 16px;
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 12px;
+      }
+
+      .gallery-title {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .gallery-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(140px, 180px);
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+
+      .gallery-item {
+        border: 1px solid rgba(31, 79, 95, 0.15);
+        border-radius: 14px;
+        background: #fff;
+        padding: 0;
+        text-align: left;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .gallery-item.active {
+        outline: 2px solid rgba(217, 107, 63, 0.5);
+      }
+
+      .gallery-thumb {
+        height: 84px;
+        background-size: cover;
+        background-position: center;
+      }
+
+      .gallery-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        font-size: 0.9rem;
+        color: var(--ink);
+      }
+
+      .gallery-badge {
+        font-size: 0.72rem;
+        background: rgba(117, 179, 129, 0.2);
+        color: #255a36;
+        padding: 2px 6px;
+        border-radius: 10px;
+        display: none;
+      }
+
+      .gallery-item.completed .gallery-badge {
+        display: inline-block;
+      }
+
+      .play-area {
+        position: relative;
+        display: grid;
+        grid-template-rows: minmax(320px, 1fr) auto;
+        gap: 20px;
+        min-height: 60vh;
+      }
+
+      .board-zone {
+        display: grid;
+        place-items: center;
+        background: var(--card);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .board {
+        width: 100%;
+        height: 100%;
+        border-radius: 18px;
+        border: 2px dashed rgba(31, 79, 95, 0.3);
+        background-color: rgba(255, 255, 255, 0.6);
+        background-image:
+          linear-gradient(to right, var(--line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+        background-size: var(--cell-w, 40px) var(--cell-h, 40px);
+        background-position: 0 0;
+      }
+
+      .tray {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 14px 16px 18px;
+        box-shadow: var(--shadow);
+      }
+
+      .tray-title {
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .tray-surface {
+        position: relative;
+        min-height: 200px;
+      }
+
+      .piece {
+        position: absolute;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        box-shadow: var(--piece-shadow);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+      }
+
+      .piece svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+
+      .piece .piece-outline {
+        stroke: rgba(31, 79, 95, 0.4);
+        stroke-width: 1;
+        fill: none;
+      }
+
+      .piece.dragging {
+        cursor: grabbing;
+        transform: scale(1.03);
+        z-index: 5;
+      }
+
+      .piece.locked {
+        box-shadow: none;
+        cursor: default;
+      }
+
+      .preview {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 16px;
+        border: 1px solid rgba(31, 79, 95, 0.2);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        z-index: 50;
+        touch-action: none;
+      }
+
+      .preview-bar {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        background: rgba(31, 79, 95, 0.06);
+      }
+
+      .preview img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #fff;
+      }
+
+      .preview-resize {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        right: 8px;
+        bottom: 8px;
+        background: var(--accent);
+        border-radius: 6px;
+        cursor: nwse-resize;
+      }
+
+      @media (max-width: 960px) {
+        .top-bar {
+          grid-template-columns: 1fr;
+          text-align: left;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          padding: 20px 16px 40px;
+        }
+
+        .play-area {
+          min-height: auto;
+        }
+
+        .preview {
+          right: 12px;
+          top: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="top-bar">
+        <div class="title-block">
+          <h1>Puzzle Game</h1>
+          <p>Drag pieces into the board. Works with mouse or touch.</p>
+        </div>
+        <div class="actions">
+          <div class="stat">Placed: <span id="piece-count">0 / 0</span></div>
+          <button class="secondary" id="shuffle" type="button">Shuffle</button>
+          <button id="reset" type="button">Reset</button>
+        </div>
+      </header>
+
+      <section class="gallery-panel">
+        <div class="gallery-title">Gallery</div>
+        <div class="gallery-grid" id="gallery"></div>
+      </section>
+
+      <main class="play-area" id="play-area">
+        <div class="board-zone" id="board-zone">
+          <div class="board" id="board"></div>
+        </div>
+        <div class="tray" id="tray">
+          <div class="tray-title">Pieces</div>
+          <div class="tray-surface" id="tray-surface"></div>
+        </div>
+      </main>
+    </div>
+
+    <div class="preview" id="preview">
+      <div class="preview-bar">Preview</div>
+      <img id="preview-image" alt="Puzzle preview" />
+      <div class="preview-resize" id="preview-resize" role="button" aria-label="Resize preview"></div>
+    </div>
+
+    <script>
+      const IMAGES = [
+        { id: "picture", src: "assets/picture.jpg", label: "Example" }
+      ];
+
+      const GRID = { cols: 15, rows: 10 };
+      const TRAY_PADDING = 16;
+      const TRAY_GAP = 12;
+      const SNAP_THRESHOLD = 0.35;
+      const STORAGE_KEY = "puzzle.completed";
+
+      const state = {
+        images: IMAGES,
+        currentImage: null,
+        imageData: null,
+        pieces: [],
+        edgeMaps: null,
+        boardRect: null,
+        trayRect: null,
+        pieceSize: { width: 0, height: 0 },
+        pieceOuter: { width: 0, height: 0, tab: 0 },
+        dragging: null,
+        completed: new Set(),
+        layoutQueued: false,
+        preview: { x: 24, y: 24, width: 260, ratio: 1 },
+        previewAction: null,
+        galleryItems: new Map()
+      };
+
+      const elements = {
+        gallery: document.getElementById("gallery"),
+        pieceCount: document.getElementById("piece-count"),
+        shuffle: document.getElementById("shuffle"),
+        reset: document.getElementById("reset"),
+        playArea: document.getElementById("play-area"),
+        boardZone: document.getElementById("board-zone"),
+        board: document.getElementById("board"),
+        tray: document.getElementById("tray"),
+        traySurface: document.getElementById("tray-surface"),
+        preview: document.getElementById("preview"),
+        previewImage: document.getElementById("preview-image"),
+        previewResize: document.getElementById("preview-resize")
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function getRelativeRect(element, container) {
+        const rect = element.getBoundingClientRect();
+        const base = container.getBoundingClientRect();
+        return {
+          x: rect.left - base.left,
+          y: rect.top - base.top,
+          width: rect.width,
+          height: rect.height
+        };
+      }
+
+      function randRange(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function createEdge(sign) {
+        if (sign === 0) {
+          return { sign: 0, size: 1, depth: 1 };
+        }
+        return {
+          sign,
+          size: randRange(0.85, 1.15),
+          depth: randRange(0.85, 1.2)
+        };
+      }
+
+      function buildEdgeMaps(rows, cols) {
+        const vertical = Array.from({ length: rows + 1 }, () =>
+          Array.from({ length: cols }, () => createEdge(0))
+        );
+        const horizontal = Array.from({ length: rows }, () =>
+          Array.from({ length: cols + 1 }, () => createEdge(0))
+        );
+
+        for (let row = 1; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            vertical[row][col] = createEdge(Math.random() > 0.5 ? 1 : -1);
+          }
+        }
+
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 1; col < cols; col += 1) {
+            horizontal[row][col] = createEdge(Math.random() > 0.5 ? 1 : -1);
+          }
+        }
+
+        return { vertical, horizontal };
+      }
+
+      function invertEdge(edge) {
+        if (!edge || edge.sign === 0) {
+          return createEdge(0);
+        }
+        return { sign: -edge.sign, size: edge.size, depth: edge.depth };
+      }
+
+      function getPieceEdges(row, col) {
+        const maps = state.edgeMaps;
+        const flat = createEdge(0);
+        if (!maps) {
+          return { top: flat, right: flat, bottom: flat, left: flat };
+        }
+        const top = row === 0 ? flat : invertEdge(maps.vertical[row][col]);
+        const bottom = row === GRID.rows - 1 ? flat : maps.vertical[row + 1][col];
+        const left = col === 0 ? flat : invertEdge(maps.horizontal[row][col]);
+        const right = col === GRID.cols - 1 ? flat : maps.horizontal[row][col + 1];
+        return { top, right, bottom, left };
+      }
+
+      function pointToString(point) {
+        return `${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+      }
+
+      function edgePoint(startX, startY, dirX, dirY, normalX, normalY, along, offset) {
+        return {
+          x: startX + dirX * along + normalX * offset,
+          y: startY + dirY * along + normalY * offset
+        };
+      }
+
+      function appendEdgePath(parts, startX, startY, dirX, dirY, normalX, normalY, length, edge, depthBase) {
+        const end = edgePoint(startX, startY, dirX, dirY, normalX, normalY, length, 0);
+        if (!edge || edge.sign === 0) {
+          parts.push(`L ${pointToString(end)}`);
+          return end;
+        }
+
+        const tabWidth = length * 0.46 * edge.size;
+        const mid = length / 2;
+        const startTab = mid - tabWidth / 2;
+        const endTab = mid + tabWidth / 2;
+        const depth = depthBase * edge.depth * edge.sign;
+        const handle = tabWidth * 0.15;
+
+        const p1 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, startTab, 0);
+        const cp1 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, startTab + handle, 0);
+        const cp2 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid - handle, depth);
+        const p2 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid, depth);
+        const cp3 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid + handle, depth);
+        const cp4 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, endTab - handle, 0);
+        const p3 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, endTab, 0);
+
+        parts.push(`L ${pointToString(p1)}`);
+        parts.push(`C ${pointToString(cp1)} ${pointToString(cp2)} ${pointToString(p2)}`);
+        parts.push(`C ${pointToString(cp3)} ${pointToString(cp4)} ${pointToString(p3)}`);
+        parts.push(`L ${pointToString(end)}`);
+        return end;
+      }
+
+      function buildPiecePath(edges, width, height, tab) {
+        const parts = [];
+        let x = tab;
+        let y = tab;
+        parts.push(`M ${x.toFixed(2)},${y.toFixed(2)}`);
+        const depthH = tab;
+        const depthW = tab;
+
+        ({ x, y } = appendEdgePath(parts, x, y, 1, 0, 0, -1, width, edges.top, depthH));
+        ({ x, y } = appendEdgePath(parts, x, y, 0, 1, 1, 0, height, edges.right, depthW));
+        ({ x, y } = appendEdgePath(parts, x, y, -1, 0, 0, 1, width, edges.bottom, depthH));
+        ({ x, y } = appendEdgePath(parts, x, y, 0, -1, -1, 0, height, edges.left, depthW));
+
+        parts.push("Z");
+        return parts.join(" ");
+      }
+
+      function loadCompleted() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+          state.completed = new Set();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(stored);
+          state.completed = new Set(parsed);
+        } catch (error) {
+          state.completed = new Set();
+        }
+      }
+
+      function saveCompleted() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.completed]));
+      }
+
+      function buildGallery() {
+        elements.gallery.innerHTML = "";
+        state.galleryItems.clear();
+        state.images.forEach((image) => {
+          const item = createGalleryItem(image);
+          elements.gallery.appendChild(item);
+          state.galleryItems.set(image.id, item);
+        });
+        updateGalleryStatus();
+      }
+
+      function createGalleryItem(image) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "gallery-item";
+        item.dataset.id = image.id;
+
+        const thumb = document.createElement("div");
+        thumb.className = "gallery-thumb";
+        thumb.style.backgroundImage = `url(${image.src})`;
+
+        const label = document.createElement("div");
+        label.className = "gallery-label";
+        label.textContent = image.label;
+
+        const badge = document.createElement("span");
+        badge.className = "gallery-badge";
+        badge.textContent = "Done";
+
+        label.appendChild(badge);
+        item.appendChild(thumb);
+        item.appendChild(label);
+
+        item.addEventListener("click", () => selectImage(image));
+
+        return item;
+      }
+
+      function updateGalleryStatus() {
+        state.images.forEach((image) => {
+          const item = state.galleryItems.get(image.id);
+          if (!item) {
+            return;
+          }
+          item.classList.toggle("active", state.currentImage?.id === image.id);
+          item.classList.toggle("completed", state.completed.has(image.id));
+        });
+      }
+
+      function loadImageData(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            resolve({
+              image: img,
+              width: img.naturalWidth,
+              height: img.naturalHeight,
+              ratio: img.naturalWidth / img.naturalHeight
+            });
+          };
+          img.onerror = () => reject(new Error("Image failed to load"));
+          img.src = src;
+        });
+      }
+
+      function selectImage(image) {
+        if (!image) {
+          return;
+        }
+        state.currentImage = image;
+        updateGalleryStatus();
+        loadImageData(image.src)
+          .then((data) => {
+            state.imageData = data;
+            state.preview.ratio = data.ratio || 1;
+            updatePreviewImage();
+            resetPieces();
+            scheduleLayout();
+          })
+          .catch(() => {
+            state.imageData = null;
+          });
+      }
+
+      function updatePreviewImage() {
+        elements.previewImage.src = state.currentImage?.src || "";
+        elements.previewImage.alt = state.currentImage
+          ? `${state.currentImage.label} preview`
+          : "Puzzle preview";
+        applyPreviewRect();
+      }
+
+      function clearPieces() {
+        state.pieces.forEach((piece) => {
+          piece.element.remove();
+        });
+        state.pieces = [];
+      }
+
+      function resetPieces() {
+        clearPieces();
+        state.edgeMaps = buildEdgeMaps(GRID.rows, GRID.cols);
+        state.pieces = buildPieces(GRID.rows, GRID.cols);
+        shufflePieces();
+        updatePieceCount();
+      }
+
+      function buildPieces(rows, cols) {
+        const pieces = [];
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const piece = createPiece(row, col);
+            pieces.push(piece);
+          }
+        }
+        return pieces;
+      }
+
+      function createPiece(row, col) {
+        const piece = {
+          id: `${row}-${col}`,
+          row,
+          col,
+          locked: false,
+          order: 0,
+          element: null,
+          svg: null,
+          imageEl: null,
+          clipPathPath: null,
+          outlinePath: null,
+          clipId: null,
+          edges: getPieceEdges(row, col),
+          home: { x: 0, y: 0 }
+        };
+        piece.element = createPieceElement(piece);
+        elements.traySurface.appendChild(piece.element);
+        return piece;
+      }
+
+      function createPieceElement(piece) {
+        const el = document.createElement("div");
+        el.className = "piece";
+        el.dataset.row = piece.row;
+        el.dataset.col = piece.col;
+        const svg = buildPieceSvg(piece);
+        el.appendChild(svg);
+        el.addEventListener("pointerdown", (event) => startPieceDrag(event, piece));
+        return el;
+      }
+
+      function buildPieceSvg(piece) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+        const clipId = `clip-${piece.id}-${Math.random().toString(36).slice(2, 7)}`;
+        clipPath.setAttribute("id", clipId);
+        clipPath.setAttribute("clipPathUnits", "userSpaceOnUse");
+
+        const clipPathShape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        clipPath.appendChild(clipPathShape);
+        defs.appendChild(clipPath);
+
+        const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+        image.setAttribute("clip-path", `url(#${clipId})`);
+        image.setAttribute("preserveAspectRatio", "none");
+
+        const outline = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        outline.setAttribute("class", "piece-outline");
+
+        svg.setAttribute("aria-hidden", "true");
+        svg.appendChild(defs);
+        svg.appendChild(image);
+        svg.appendChild(outline);
+
+        piece.svg = svg;
+        piece.imageEl = image;
+        piece.clipPathPath = clipPathShape;
+        piece.outlinePath = outline;
+        piece.clipId = clipId;
+        return svg;
+      }
+
+      function updatePieceSvg(piece) {
+        if (!state.currentImage || !state.boardRect) {
+          return;
+        }
+        const { width: cellW, height: cellH } = state.pieceSize;
+        const { width: outerW, height: outerH, tab } = state.pieceOuter;
+        const path = buildPiecePath(piece.edges, cellW, cellH, tab);
+        piece.svg.setAttribute("viewBox", `0 0 ${outerW} ${outerH}`);
+        piece.svg.setAttribute("width", outerW);
+        piece.svg.setAttribute("height", outerH);
+        piece.imageEl.setAttribute("href", state.currentImage.src);
+        piece.imageEl.setAttributeNS("http://www.w3.org/1999/xlink", "href", state.currentImage.src);
+        piece.imageEl.setAttribute("width", state.boardRect.width);
+        piece.imageEl.setAttribute("height", state.boardRect.height);
+        piece.imageEl.setAttribute("x", tab - piece.col * cellW);
+        piece.imageEl.setAttribute("y", tab - piece.row * cellH);
+        piece.clipPathPath.setAttribute("d", path);
+        piece.outlinePath.setAttribute("d", path);
+      }
+
+      function shufflePieces() {
+        const order = [...state.pieces];
+        for (let i = order.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        order.forEach((piece, index) => {
+          piece.order = index;
+        });
+        layoutTrayPieces();
+      }
+
+      function scheduleLayout() {
+        if (state.layoutQueued) {
+          return;
+        }
+        state.layoutQueued = true;
+        requestAnimationFrame(refreshLayout);
+      }
+
+      function refreshLayout() {
+        state.layoutQueued = false;
+        if (!state.imageData) {
+          return;
+        }
+        updateBoardSize();
+        updateRects();
+        updatePieceMetrics();
+        updatePieceStyles();
+        positionLockedPieces();
+        layoutTrayPieces();
+        updatePieceCount();
+      }
+
+      function updateBoardSize() {
+        const zoneRect = elements.boardZone.getBoundingClientRect();
+        const ratio = state.imageData?.ratio || 1;
+        let width = zoneRect.width - 8;
+        let height = width / ratio;
+        if (height > zoneRect.height - 8) {
+          height = zoneRect.height - 8;
+          width = height * ratio;
+        }
+        elements.board.style.width = `${width}px`;
+        elements.board.style.height = `${height}px`;
+      }
+
+      function updateRects() {
+        state.boardRect = getRelativeRect(elements.board, elements.playArea);
+        state.trayRect = getRelativeRect(elements.traySurface, elements.playArea);
+      }
+
+      function updatePieceMetrics() {
+        if (!state.boardRect) {
+          return;
+        }
+        state.pieceSize.width = state.boardRect.width / GRID.cols;
+        state.pieceSize.height = state.boardRect.height / GRID.rows;
+        const tab = Math.min(state.pieceSize.width, state.pieceSize.height) * 0.24;
+        state.pieceOuter.tab = tab;
+        state.pieceOuter.width = state.pieceSize.width + tab * 2;
+        state.pieceOuter.height = state.pieceSize.height + tab * 2;
+        elements.board.style.setProperty("--cell-w", `${state.pieceSize.width}px`);
+        elements.board.style.setProperty("--cell-h", `${state.pieceSize.height}px`);
+      }
+
+      function updatePieceStyles() {
+        if (!state.currentImage) {
+          return;
+        }
+        const { width, height } = state.pieceOuter;
+        state.pieces.forEach((piece) => {
+          const el = piece.element;
+          el.style.width = `${width}px`;
+          el.style.height = `${height}px`;
+          updatePieceSvg(piece);
+        });
+      }
+
+      function positionLockedPieces() {
+        state.pieces.forEach((piece) => {
+          if (!piece.locked) {
+            return;
+          }
+          placePieceOnBoard(piece);
+        });
+      }
+
+      function layoutTrayPieces() {
+        if (!state.trayRect || !state.pieceOuter.width) {
+          return;
+        }
+        const unlocked = state.pieces
+          .filter((piece) => !piece.locked)
+          .sort((a, b) => a.order - b.order);
+        const availableWidth = state.trayRect.width - TRAY_PADDING * 2;
+        const cellWidth = state.pieceOuter.width + TRAY_GAP;
+        const columns = Math.max(1, Math.floor((availableWidth + TRAY_GAP) / cellWidth));
+        const rows = Math.max(1, Math.ceil(unlocked.length / columns));
+
+        unlocked.forEach((piece, index) => {
+          if (state.dragging?.piece === piece) {
+            return;
+          }
+          const col = index % columns;
+          const row = Math.floor(index / columns);
+          const x = TRAY_PADDING + col * cellWidth;
+          const y = TRAY_PADDING + row * (state.pieceOuter.height + TRAY_GAP);
+          piece.home = { x, y };
+          placePieceInTray(piece);
+        });
+
+        setTraySurfaceHeight(rows);
+      }
+
+      function setTraySurfaceHeight(rows) {
+        const height =
+          rows * (state.pieceOuter.height + TRAY_GAP) - TRAY_GAP + TRAY_PADDING * 2;
+        elements.traySurface.style.height = `${Math.max(height, 200)}px`;
+      }
+
+      function placePieceInTray(piece) {
+        if (piece.element.parentElement !== elements.traySurface) {
+          elements.traySurface.appendChild(piece.element);
+        }
+        piece.element.classList.remove("locked");
+        piece.element.style.left = `${piece.home.x}px`;
+        piece.element.style.top = `${piece.home.y}px`;
+      }
+
+      function movePieceToPlayArea(piece) {
+        if (piece.element.parentElement === elements.playArea) {
+          return;
+        }
+        const pieceRect = piece.element.getBoundingClientRect();
+        const playRect = elements.playArea.getBoundingClientRect();
+        const x = pieceRect.left - playRect.left;
+        const y = pieceRect.top - playRect.top;
+        elements.playArea.appendChild(piece.element);
+        piece.element.style.left = `${x}px`;
+        piece.element.style.top = `${y}px`;
+      }
+
+      function setPiecePosition(piece, x, y) {
+        piece.element.style.left = `${x}px`;
+        piece.element.style.top = `${y}px`;
+        piece.dragX = x;
+        piece.dragY = y;
+      }
+
+      function startPieceDrag(event, piece) {
+        if (piece.locked) {
+          return;
+        }
+        event.preventDefault();
+        movePieceToPlayArea(piece);
+        piece.element.setPointerCapture(event.pointerId);
+        const rect = piece.element.getBoundingClientRect();
+        state.dragging = {
+          piece,
+          offsetX: event.clientX - rect.left,
+          offsetY: event.clientY - rect.top,
+          pointerId: event.pointerId
+        };
+        piece.element.classList.add("dragging");
+        movePieceDrag(event);
+      }
+
+      function movePieceDrag(event) {
+        if (!state.dragging) {
+          return;
+        }
+        const playRect = elements.playArea.getBoundingClientRect();
+        const x = event.clientX - playRect.left - state.dragging.offsetX;
+        const y = event.clientY - playRect.top - state.dragging.offsetY;
+        setPiecePosition(state.dragging.piece, x, y);
+      }
+
+      function endPieceDrag(event) {
+        if (!state.dragging) {
+          return;
+        }
+        const { piece, pointerId } = state.dragging;
+        piece.element.releasePointerCapture(pointerId);
+        piece.element.classList.remove("dragging");
+        const snapped = trySnapPiece(piece);
+        if (!snapped) {
+          placePieceInTray(piece);
+        }
+        state.dragging = null;
+        updatePieceCount();
+        checkCompletion();
+      }
+
+      function getPieceTarget(piece) {
+        return {
+          x: state.boardRect.x + piece.col * state.pieceSize.width,
+          y: state.boardRect.y + piece.row * state.pieceSize.height
+        };
+      }
+
+      function getPieceSnapPosition(piece) {
+        const target = getPieceTarget(piece);
+        const tab = state.pieceOuter.tab;
+        return {
+          x: target.x - tab,
+          y: target.y - tab
+        };
+      }
+
+      function trySnapPiece(piece) {
+        if (!state.boardRect) {
+          return false;
+        }
+        const target = getPieceTarget(piece);
+        const pieceCenter = {
+          x: piece.dragX + state.pieceOuter.width / 2,
+          y: piece.dragY + state.pieceOuter.height / 2
+        };
+        const targetCenter = {
+          x: target.x + state.pieceSize.width / 2,
+          y: target.y + state.pieceSize.height / 2
+        };
+        const dx = pieceCenter.x - targetCenter.x;
+        const dy = pieceCenter.y - targetCenter.y;
+        const distance = Math.hypot(dx, dy);
+        const threshold = Math.min(state.pieceSize.width, state.pieceSize.height) * SNAP_THRESHOLD;
+        if (distance > threshold) {
+          return false;
+        }
+        const snap = getPieceSnapPosition(piece);
+        lockPiece(piece, snap.x, snap.y);
+        return true;
+      }
+
+      function lockPiece(piece, x, y) {
+        piece.locked = true;
+        elements.playArea.appendChild(piece.element);
+        piece.element.classList.add("locked");
+        setPiecePosition(piece, x, y);
+      }
+
+      function placePieceOnBoard(piece) {
+        const snap = getPieceSnapPosition(piece);
+        lockPiece(piece, snap.x, snap.y);
+      }
+
+      function updatePieceCount() {
+        const locked = state.pieces.filter((piece) => piece.locked).length;
+        elements.pieceCount.textContent = `${locked} / ${state.pieces.length}`;
+      }
+
+      function checkCompletion() {
+        const allLocked = state.pieces.every((piece) => piece.locked);
+        if (!allLocked || !state.currentImage) {
+          return;
+        }
+        state.completed.add(state.currentImage.id);
+        saveCompleted();
+        updateGalleryStatus();
+      }
+
+      function bindControls() {
+        elements.shuffle.addEventListener("click", shufflePieces);
+        elements.reset.addEventListener("click", () => {
+          resetPieces();
+          scheduleLayout();
+        });
+        elements.playArea.addEventListener("pointermove", movePieceDrag);
+        elements.playArea.addEventListener("pointerup", endPieceDrag);
+        elements.playArea.addEventListener("pointercancel", endPieceDrag);
+      }
+
+      function initPreview() {
+        elements.preview.addEventListener("pointerdown", startPreviewPointer);
+        elements.preview.addEventListener("pointermove", movePreviewPointer);
+        elements.preview.addEventListener("pointerup", endPreviewPointer);
+        elements.preview.addEventListener("pointercancel", endPreviewPointer);
+        applyPreviewRect();
+      }
+
+      function applyPreviewRect() {
+        const maxWidth = Math.min(window.innerWidth - 32, 420);
+        state.preview.width = clamp(state.preview.width, 180, maxWidth);
+        elements.preview.style.width = `${state.preview.width}px`;
+        elements.preview.style.left = `${state.preview.x}px`;
+        elements.preview.style.top = `${state.preview.y}px`;
+      }
+
+      function startPreviewPointer(event) {
+        if (event.target === elements.previewResize) {
+          startPreviewResize(event);
+          return;
+        }
+        startPreviewDrag(event);
+      }
+
+      function startPreviewDrag(event) {
+        event.preventDefault();
+        elements.preview.setPointerCapture(event.pointerId);
+        state.previewAction = {
+          mode: "drag",
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          startLeft: state.preview.x,
+          startTop: state.preview.y
+        };
+      }
+
+      function startPreviewResize(event) {
+        event.preventDefault();
+        elements.preview.setPointerCapture(event.pointerId);
+        state.previewAction = {
+          mode: "resize",
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          startWidth: state.preview.width
+        };
+      }
+
+      function movePreviewPointer(event) {
+        if (!state.previewAction || event.pointerId !== state.previewAction.pointerId) {
+          return;
+        }
+        if (state.previewAction.mode === "drag") {
+          movePreviewDrag(event);
+          return;
+        }
+        if (state.previewAction.mode === "resize") {
+          movePreviewResize(event);
+        }
+      }
+
+      function movePreviewDrag(event) {
+        const dx = event.clientX - state.previewAction.startX;
+        const dy = event.clientY - state.previewAction.startY;
+        const rect = elements.preview.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width - 8;
+        const maxY = window.innerHeight - rect.height - 8;
+        state.preview.x = clamp(state.previewAction.startLeft + dx, 8, maxX);
+        state.preview.y = clamp(state.previewAction.startTop + dy, 8, maxY);
+        applyPreviewRect();
+      }
+
+      function movePreviewResize(event) {
+        const dx = event.clientX - state.previewAction.startX;
+        const dy = event.clientY - state.previewAction.startY;
+        const delta = Math.max(dx, dy * (state.preview.ratio || 1));
+        state.preview.width = state.previewAction.startWidth + delta;
+        applyPreviewRect();
+      }
+
+      function endPreviewPointer(event) {
+        if (!state.previewAction || event.pointerId !== state.previewAction.pointerId) {
+          return;
+        }
+        elements.preview.releasePointerCapture(event.pointerId);
+        state.previewAction = null;
+      }
+
+      function setupObservers() {
+        window.addEventListener("resize", scheduleLayout);
+      }
+
+      function init() {
+        loadCompleted();
+        buildGallery();
+        bindControls();
+        initPreview();
+        selectImage(state.images[0]);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

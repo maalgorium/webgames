@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mapgame</title>
+    <style>
+      :root {
+        --bg: #f1efe6;
+        --bg-2: #f7f3ea;
+        --ink: #1b1d1f;
+        --muted: #6e6a63;
+        --accent: #e07a5f;
+        --accent-2: #3d5a80;
+        --tile: #fbfaf6;
+        --tile-stroke: #6b7c8c;
+        --found: #81b29a;
+        --card: rgba(255, 255, 255, 0.75);
+        --shadow: 0 18px 40px rgba(20, 30, 40, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "DM Serif Display", "Georgia", serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, #fffaf0 0%, var(--bg) 48%),
+          linear-gradient(120deg, #f6efe0 0%, #e9efe6 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 12% 18%, rgba(224, 122, 95, 0.15), transparent 40%),
+          radial-gradient(circle at 86% 12%, rgba(61, 90, 128, 0.12), transparent 35%),
+          radial-gradient(circle at 80% 80%, rgba(129, 178, 154, 0.18), transparent 45%);
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .page {
+        width: 100%;
+        max-width: clamp(0px, 92vw, 1400px);
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+        display: grid;
+        gap: 28px;
+        animation: fadeUp 0.7s ease both;
+      }
+
+      .title-block h1 {
+        margin: 0 0 6px;
+        font-size: clamp(1.6rem, 3vw, 2.4rem);
+        letter-spacing: 0.04em;
+      }
+
+      .title-block p {
+        margin: 0;
+        font-family: "Space Grotesk", "Arial", sans-serif;
+        font-size: 1rem;
+        color: var(--muted);
+      }
+
+      .input-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        font-family: "Space Grotesk", "Arial", sans-serif;
+      }
+
+      .timer {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+
+      .progress {
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .reset {
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .reset:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(224, 122, 95, 0.35);
+      }
+
+      .input-panel {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 18px 22px;
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 10px;
+        font-family: "Space Grotesk", "Arial", sans-serif;
+      }
+
+      label {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(27, 29, 31, 0.15);
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+      }
+
+      input[type="text"]:focus {
+        outline: 2px solid rgba(61, 90, 128, 0.45);
+        border-color: transparent;
+      }
+
+      .hint {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .status {
+        min-height: 1.2rem;
+        font-size: 0.9rem;
+        color: var(--accent-2);
+      }
+
+      .status.warn {
+        color: #a05f2c;
+      }
+
+      .map-panel {
+        background: var(--card);
+        border-radius: 22px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .map-frame {
+        min-height: 320px;
+      }
+
+      .map-placeholder {
+        font-family: "Space Grotesk", "Arial", sans-serif;
+        color: var(--muted);
+        font-size: 0.95rem;
+        text-align: center;
+        padding: 24px 0;
+      }
+
+      .map-panel svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        animation: mapReveal 0.9s ease both;
+      }
+
+      .map-panel svg .land {
+        fill: transparent !important;
+        stroke: var(--tile-stroke) !important;
+        stroke-width: 0.7 !important;
+        transition: fill 0.2s ease, stroke 0.2s ease;
+      }
+
+      .map-panel svg .land.found {
+        fill: var(--found) !important;
+        stroke: #2f5f52 !important;
+        animation: pop 0.4s ease;
+      }
+
+      .lists {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(6, minmax(150px, 1fr));
+        align-items: start;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+
+      .continent-card {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 16px 18px 20px;
+        box-shadow: var(--shadow);
+        font-family: "Space Grotesk", "Arial", sans-serif;
+        animation: fadeUp 0.6s ease both;
+      }
+
+      .continent-card h3 {
+        margin: 0 0 12px;
+        font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .continent-card ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 6px 12px;
+      }
+
+      .continent-card li {
+        font-size: clamp(0.78rem, 0.95vw, 0.95rem);
+        color: var(--muted);
+      }
+
+      .continent-card li.found {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes mapReveal {
+        from {
+          opacity: 0;
+          transform: translateY(18px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .input-header {
+          grid-template-columns: 1fr;
+          text-align: left;
+        }
+
+        .stats {
+          justify-content: start;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .page {
+          padding: 20px 16px 48px;
+        }
+
+        .stats {
+          justify-content: start;
+        }
+
+        .continent-card ul {
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="input-panel">
+        <div class="input-header">
+          <div class="title-block">
+            <h1>Map Game</h1>
+            <p>Type a country and press Enter to claim it on the map.</p>
+          </div>
+          <div class="stats">
+            <div class="timer" id="timer">00:00</div>
+            <div class="progress" id="progress">0 / 0</div>
+            <button class="reset" id="reset" type="button">Reset</button>
+          </div>
+        </div>
+        <label for="guess">Country name</label>
+        <input id="guess" type="text" autocomplete="off" placeholder="Start typing a country..." />
+        <div class="hint">Examples: Japan, Cote d'Ivoire, United States</div>
+        <div class="status" id="status"></div>
+      </section>
+
+            <section class="map-panel">
+        <div class="map-frame" id="map-container">
+          <div class="map-placeholder" id="map-placeholder">Loading map...</div>
+        </div>
+      </section>
+
+      <section class="lists" id="lists"></section>
+    </div>
+
+    <script>
+      const CONTINENT_COUNTRIES = {
+        "North America": [
+          "Antigua and Barbuda",
+          "Bahamas",
+          "Barbados",
+          "Belize",
+          "Canada",
+          "Costa Rica",
+          "Cuba",
+          "Dominica",
+          "Dominican Republic",
+          "El Salvador",
+          "Grenada",
+          "Guatemala",
+          "Haiti",
+          "Honduras",
+          "Jamaica",
+          "Mexico",
+          "Nicaragua",
+          "Panama",
+          "Saint Kitts and Nevis",
+          "Saint Lucia",
+          "Saint Vincent and the Grenadines",
+          "Trinidad and Tobago",
+          "United States of America"
+        ],
+        "South America": [
+          "Argentina",
+          "Bolivia",
+          "Brazil",
+          "Chile",
+          "Colombia",
+          "Ecuador",
+          "Guyana",
+          "Paraguay",
+          "Peru",
+          "Suriname",
+          "Uruguay",
+          "Venezuela"
+        ],
+        Europe: [
+          "Albania",
+          "Andorra",
+          "Austria",
+          "Belarus",
+          "Belgium",
+          "Bosnia and Herzegovina",
+          "Bulgaria",
+          "Croatia",
+          "Czechia",
+          "Denmark",
+          "Estonia",
+          "Finland",
+          "France",
+          "Germany",
+          "Greece",
+          "Hungary",
+          "Iceland",
+          "Ireland",
+          "Italy",
+          "Latvia",
+          "Liechtenstein",
+          "Lithuania",
+          "Luxembourg",
+          "Malta",
+          "Moldova",
+          "Monaco",
+          "Montenegro",
+          "Netherlands",
+          "North Macedonia",
+          "Norway",
+          "Poland",
+          "Portugal",
+          "Romania",
+          "Russia",
+          "San Marino",
+          "Serbia",
+          "Slovakia",
+          "Slovenia",
+          "Spain",
+          "Sweden",
+          "Switzerland",
+          "Ukraine",
+          "United Kingdom",
+          "Vatican City"
+        ],
+        Africa: [
+          "Algeria",
+          "Angola",
+          "Benin",
+          "Botswana",
+          "Burkina Faso",
+          "Burundi",
+          "Cabo Verde",
+          "Cameroon",
+          "Central African Republic",
+          "Chad",
+          "Comoros",
+          "Cote d'Ivoire",
+          "Democratic Republic of the Congo",
+          "Djibouti",
+          "Egypt",
+          "Equatorial Guinea",
+          "Eritrea",
+          "Eswatini",
+          "Ethiopia",
+          "Gabon",
+          "Gambia",
+          "Ghana",
+          "Guinea",
+          "Guinea-Bissau",
+          "Kenya",
+          "Lesotho",
+          "Liberia",
+          "Libya",
+          "Madagascar",
+          "Malawi",
+          "Mali",
+          "Mauritania",
+          "Mauritius",
+          "Morocco",
+          "Mozambique",
+          "Namibia",
+          "Niger",
+          "Nigeria",
+          "Republic of the Congo",
+          "Rwanda",
+          "Sao Tome and Principe",
+          "Senegal",
+          "Seychelles",
+          "Sierra Leone",
+          "Somalia",
+          "South Africa",
+          "South Sudan",
+          "Sudan",
+          "Tanzania",
+          "Togo",
+          "Tunisia",
+          "Uganda",
+          "Zambia",
+          "Zimbabwe"
+        ],
+        Asia: [
+          "Afghanistan",
+          "Armenia",
+          "Azerbaijan",
+          "Bahrain",
+          "Bangladesh",
+          "Bhutan",
+          "Brunei",
+          "Cambodia",
+          "China",
+          "Cyprus",
+          "Georgia",
+          "India",
+          "Indonesia",
+          "Iran",
+          "Iraq",
+          "Israel",
+          "Japan",
+          "Jordan",
+          "Kazakhstan",
+          "Kuwait",
+          "Kyrgyzstan",
+          "Laos",
+          "Lebanon",
+          "Malaysia",
+          "Maldives",
+          "Mongolia",
+          "Myanmar",
+          "Nepal",
+          "North Korea",
+          "Oman",
+          "Pakistan",
+          "Palestine",
+          "Philippines",
+          "Qatar",
+          "Saudi Arabia",
+          "Singapore",
+          "South Korea",
+          "Sri Lanka",
+          "Syria",
+          "Tajikistan",
+          "Thailand",
+          "Timor-Leste",
+          "Turkey",
+          "Turkmenistan",
+          "United Arab Emirates",
+          "Uzbekistan",
+          "Vietnam",
+          "Yemen"
+        ],
+        Oceania: [
+          "Australia",
+          "Fiji",
+          "Kiribati",
+          "Marshall Islands",
+          "Micronesia",
+          "Nauru",
+          "New Zealand",
+          "Palau",
+          "Papua New Guinea",
+          "Samoa",
+          "Solomon Islands",
+          "Tonga",
+          "Tuvalu",
+          "Vanuatu"
+        ]
+      };
+
+      const COUNTRY_ALIASES = {
+        "usa": "United States of America",
+        "united states": "United States of America",
+        "us": "United States of America",
+        "uk": "United Kingdom",
+        "britain": "United Kingdom",
+        "czech republic": "Czechia",
+        "cape verde": "Cabo Verde",
+        "swaziland": "Eswatini",
+        "ivory coast": "Cote d'Ivoire",
+        "cote divoire": "Cote d'Ivoire",
+        "east timor": "Timor-Leste",
+        "uae": "United Arab Emirates",
+        "dr congo": "Democratic Republic of the Congo",
+        "drc": "Democratic Republic of the Congo",
+        "democratic republic of congo": "Democratic Republic of the Congo",
+        "republic of congo": "Republic of the Congo",
+        "congo brazzaville": "Republic of the Congo",
+        "congo kinshasa": "Democratic Republic of the Congo",
+        "federated states of micronesia": "Micronesia",
+        "macedonia": "North Macedonia",
+        "palestinian territories": "Palestine",
+        "north macedonia": "North Macedonia",
+        "south korea": "South Korea",
+        "north korea": "North Korea",
+        "syria": "Syria",
+        "lao": "Laos"
+      };
+
+      const SVG_NAME_OVERRIDES = {
+        "Cabo Verde": "Cape Verde",
+        "Czechia": "Czech Republic",
+        "Democratic Republic of the Congo": "Democratic Republic of Congo",
+        "Eswatini": "Swaziland",
+        "Micronesia": "Federated States of Micronesia",
+        "North Macedonia": "Macedonia",
+        "Palestine": "Palestinian Territories",
+        "Republic of the Congo": "Republic of Congo",
+        "United States of America": "United States"
+      };
+
+      const MAP_SVG_PATH = "worldPacificRimHigh.svg";
+
+      const state = {
+        found: new Set(),
+        startTime: null,
+        timerId: null,
+        registry: new Map(),
+        nameIndex: new Map(),
+        tileNodes: new Map(),
+        listNodes: new Map(),
+        total: 0
+      };
+
+      const elements = {
+        input: document.getElementById("guess"),
+        timer: document.getElementById("timer"),
+        progress: document.getElementById("progress"),
+        status: document.getElementById("status"),
+        reset: document.getElementById("reset"),
+        mapContainer: document.getElementById("map-container"),
+        mapPlaceholder: document.getElementById("map-placeholder"),
+        map: null,
+        lists: document.getElementById("lists")
+      };
+
+      function slugify(name) {
+        return name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+      }
+
+      function normalizeInput(value) {
+        return value
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/&/g, "and")
+          .replace(/[^a-z0-9\s]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function buildRegistry() {
+        const registry = new Map();
+        Object.entries(CONTINENT_COUNTRIES).forEach(([continent, countries]) => {
+          countries.forEach((name) => {
+            registry.set(slugify(name), { name, continent });
+          });
+        });
+        return registry;
+      }
+
+      function buildNameIndex(registry) {
+        const index = new Map();
+        registry.forEach(({ name }, slug) => {
+          index.set(normalizeInput(name), slug);
+        });
+        Object.entries(COUNTRY_ALIASES).forEach(([alias, canonical]) => {
+          const key = normalizeInput(alias);
+          const slug = registry.get(slugify(canonical)) ? slugify(canonical) : null;
+          if (slug) {
+            index.set(key, slug);
+          }
+        });
+        return index;
+      }
+
+      function showMapMessage(message) {
+        if (!elements.mapPlaceholder) {
+          return;
+        }
+        elements.mapPlaceholder.textContent = message;
+      }
+
+      function parseSvgText(svgText) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, "image/svg+xml");
+        const svg = doc.querySelector("svg");
+        if (!svg) {
+          return null;
+        }
+        svg.setAttribute("id", "map");
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", "World map");
+        if (!svg.getAttribute("preserveAspectRatio")) {
+          svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        }
+        return svg;
+      }
+
+      async function loadMapSvg() {
+        if (!elements.mapContainer) {
+          return false;
+        }
+        try {
+          const response = await fetch(MAP_SVG_PATH, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`Map load failed: ${response.status}`);
+          }
+          const svgText = await response.text();
+          const svg = parseSvgText(svgText);
+          if (!svg) {
+            throw new Error("Map SVG missing <svg> root.");
+          }
+          elements.mapContainer.replaceChildren(svg);
+          elements.map = svg;
+          return true;
+        } catch (error) {
+          console.warn(error);
+          showMapMessage("Map failed to load. Use a local server if opened from file.");
+          return false;
+        }
+      }
+
+      function resolveSvgName(name) {
+        return SVG_NAME_OVERRIDES[name] || name;
+      }
+
+      function buildSvgIndex() {
+        const index = new Map();
+        if (!elements.map) {
+          return index;
+        }
+        elements.map.querySelectorAll(".land").forEach((path) => {
+          const title = path.getAttribute("title");
+          if (!title) {
+            return;
+          }
+          index.set(normalizeInput(title), path);
+        });
+        return index;
+      }
+
+      function mapCountriesToSvg(svgIndex) {
+        const missing = [];
+        state.tileNodes.clear();
+        state.registry.forEach(({ name }, slug) => {
+          const svgName = resolveSvgName(name);
+          const key = normalizeInput(svgName);
+          const path = svgIndex.get(key);
+          if (!path) {
+            missing.push(name);
+            return;
+          }
+          path.dataset.country = slug;
+          state.tileNodes.set(slug, path);
+        });
+        if (missing.length) {
+          console.warn("Missing countries in SVG:", missing);
+        }
+      }
+
+      function setMapViewBox() {
+        if (!elements.map) {
+          return;
+        }
+        const group = elements.map.querySelector("g");
+        if (!group) {
+          return;
+        }
+        const box = group.getBBox();
+        const padding = 18;
+        elements.map.setAttribute(
+          "viewBox",
+          `${box.x - padding} ${box.y - padding} ${box.width + padding * 2} ${box.height + padding * 2}`
+        );
+      }
+
+      function configureMap() {
+        if (!elements.map) {
+          return;
+        }
+        const svgIndex = buildSvgIndex();
+        mapCountriesToSvg(svgIndex);
+        setMapViewBox();
+      }
+
+      function buildLists() {
+        const container = elements.lists;
+        container.innerHTML = "";
+
+        Object.entries(CONTINENT_COUNTRIES).forEach(([continent, countries], index) => {
+          const section = document.createElement("section");
+          section.className = "continent-card";
+          section.style.animationDelay = `${index * 0.06}s`;
+
+          const heading = document.createElement("h3");
+          heading.textContent = `${continent} (${countries.length})`;
+          section.appendChild(heading);
+
+          const list = document.createElement("ul");
+          const sorted = [...countries].sort((a, b) => a.localeCompare(b));
+          sorted.forEach((name) => {
+            const li = document.createElement("li");
+            const slug = slugify(name);
+            li.dataset.country = slug;
+            li.textContent = "-";
+            list.appendChild(li);
+            state.listNodes.set(slug, li);
+          });
+          section.appendChild(list);
+          container.appendChild(section);
+        });
+      }
+
+      function updateProgress() {
+        elements.progress.textContent = `${state.found.size} / ${state.total}`;
+      }
+
+      function formatTime(seconds) {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const secs = String(seconds % 60).padStart(2, "0");
+        return `${mins}:${secs}`;
+      }
+
+      function updateTimer() {
+        if (!state.startTime) {
+          return;
+        }
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        elements.timer.textContent = formatTime(elapsed);
+      }
+
+      function startTimer() {
+        if (state.timerId) {
+          return;
+        }
+        state.startTime = Date.now();
+        state.timerId = setInterval(updateTimer, 1000);
+        updateTimer();
+      }
+
+      function stopTimer() {
+        if (state.timerId) {
+          clearInterval(state.timerId);
+          state.timerId = null;
+        }
+      }
+
+      function setStatus(message, variant) {
+        elements.status.textContent = message;
+        elements.status.className = variant ? `status ${variant}` : "status";
+        if (!message) {
+          return;
+        }
+        setTimeout(() => {
+          if (elements.status.textContent === message) {
+            elements.status.textContent = "";
+            elements.status.className = "status";
+          }
+        }, 1800);
+      }
+
+      function markFound(slug) {
+        const entry = state.registry.get(slug);
+        if (!entry) {
+          return;
+        }
+        state.found.add(slug);
+        const tile = state.tileNodes.get(slug);
+        if (tile) {
+          tile.classList.add("found");
+        }
+        const listItem = state.listNodes.get(slug);
+        if (listItem) {
+          listItem.textContent = entry.name;
+          listItem.classList.add("found");
+        }
+      }
+
+      function resolveGuess(raw) {
+        const key = normalizeInput(raw);
+        if (!key) {
+          return null;
+        }
+        return state.nameIndex.get(key) || null;
+      }
+
+      function submitGuess(value) {
+        const pieces = value.split(/[;,\n]/).map((part) => part.trim());
+        let matched = false;
+
+        pieces.forEach((part) => {
+          const slug = resolveGuess(part);
+          if (!slug) {
+            return;
+          }
+          matched = true;
+          if (state.found.has(slug)) {
+            return;
+          }
+          markFound(slug);
+        });
+
+        if (!matched) {
+          setStatus("No match yet.", "warn");
+        }
+
+        updateProgress();
+
+        if (state.found.size === state.total) {
+          stopTimer();
+          setStatus("All countries found!", "");
+        }
+      }
+
+      function resetGame() {
+        state.found.clear();
+        stopTimer();
+        state.startTime = null;
+        elements.timer.textContent = "00:00";
+        elements.input.value = "";
+        elements.status.textContent = "";
+        elements.status.className = "status";
+
+        state.tileNodes.forEach((tile) => {
+          tile.classList.remove("found");
+        });
+        state.listNodes.forEach((item) => {
+          item.textContent = "-";
+          item.classList.remove("found");
+        });
+
+        updateProgress();
+      }
+
+      function handleInput() {
+        if (!state.timerId && elements.input.value.trim()) {
+          startTimer();
+        }
+      }
+
+      function handleKeydown(event) {
+        if (event.key !== "Enter") {
+          return;
+        }
+        event.preventDefault();
+        const value = elements.input.value.trim();
+        if (!value) {
+          return;
+        }
+        submitGuess(value);
+        elements.input.value = "";
+      }
+
+      function init() {
+        state.registry = buildRegistry();
+        state.nameIndex = buildNameIndex(state.registry);
+        state.total = state.registry.size;
+        showMapMessage("Loading map...");
+        loadMapSvg().then((loaded) => {
+          if (loaded) {
+            configureMap();
+          }
+        });
+        buildLists();
+        updateProgress();
+
+        elements.input.addEventListener("input", handleInput);
+        elements.input.addEventListener("keydown", handleKeydown);
+        elements.reset.addEventListener("click", resetGame);
+      }
+
+      init();
+    </script>
+  </body>
+</html>
