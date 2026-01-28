@@ -26,6 +26,8 @@
     pieceOuter: { width: 0, height: 0, tab: 0 },
     dragging: null,
     completed: new Set(),
+    groups: new Map(),
+    nextGroupId: 1,
     layoutQueued: false,
     preview: { x: 24, y: 24, width: 260, ratio: 1 },
     previewAction: null,

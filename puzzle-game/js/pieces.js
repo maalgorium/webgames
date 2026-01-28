@@ -12,6 +12,7 @@
   Puzzle.resetPieces = function resetPieces() {
     const { GRID } = Puzzle.constants;
     Puzzle.clearPieces();
+    Puzzle.resetGroups();
     Puzzle.state.edgeMaps = Puzzle.buildEdgeMaps(GRID.rows, GRID.cols);
     Puzzle.state.pieces = Puzzle.buildPieces(GRID.rows, GRID.cols);
     Puzzle.shufflePieces();
@@ -37,6 +38,7 @@
       locked: false,
       location: "tray",
       order: 0,
+      groupId: null,
       element: null,
       svg: null,
       imageEl: null,
@@ -49,6 +51,309 @@
     piece.element = Puzzle.createPieceElement(piece);
     Puzzle.elements.traySurface.appendChild(piece.element);
     return piece;
+  };
+
+  Puzzle.resetGroups = function resetGroups() {
+    Puzzle.state.groups = new Map();
+    Puzzle.state.nextGroupId = 1;
+  };
+
+  Puzzle.getPiecePosition = function getPiecePosition(piece) {
+    if (Number.isFinite(piece.dragX) && Number.isFinite(piece.dragY)) {
+      return { x: piece.dragX, y: piece.dragY };
+    }
+    const rect = Puzzle.getRelativeRect(piece.element, Puzzle.elements.playArea);
+    piece.dragX = rect.x;
+    piece.dragY = rect.y;
+    return { x: rect.x, y: rect.y };
+  };
+
+  Puzzle.getSnapThreshold = function getSnapThreshold() {
+    const { pieceSize } = Puzzle.state;
+    return Math.min(pieceSize.width, pieceSize.height) * Puzzle.constants.SNAP_THRESHOLD;
+  };
+
+  Puzzle.getPieceTargetDistance = function getPieceTargetDistance(piece) {
+    const { boardRect, pieceSize, pieceOuter } = Puzzle.state;
+    if (!boardRect) {
+      return null;
+    }
+    const pos = Puzzle.getPiecePosition(piece);
+    const target = Puzzle.getPieceTarget(piece);
+    const pieceCenter = {
+      x: pos.x + pieceOuter.width / 2,
+      y: pos.y + pieceOuter.height / 2
+    };
+    const targetCenter = {
+      x: target.x + pieceSize.width / 2,
+      y: target.y + pieceSize.height / 2
+    };
+    return Math.hypot(pieceCenter.x - targetCenter.x, pieceCenter.y - targetCenter.y);
+  };
+
+  Puzzle.isPieceCloseToTarget = function isPieceCloseToTarget(piece) {
+    const distance = Puzzle.getPieceTargetDistance(piece);
+    if (distance === null) {
+      return false;
+    }
+    return distance <= Puzzle.getSnapThreshold();
+  };
+
+  Puzzle.unlockPiece = function unlockPiece(piece) {
+    if (!piece.locked) {
+      return;
+    }
+    piece.locked = false;
+    piece.element.classList.remove("locked");
+  };
+
+  Puzzle.flashPieceOutline = function flashPieceOutline(piece) {
+    const outline = piece.outlinePath;
+    if (!outline) {
+      return;
+    }
+    outline.classList.remove("flash-outline");
+    outline.getBoundingClientRect();
+    outline.classList.add("flash-outline");
+    outline.addEventListener(
+      "animationend",
+      () => {
+        outline.classList.remove("flash-outline");
+      },
+      { once: true }
+    );
+  };
+
+  Puzzle.flashPieces = function flashPieces(pieces) {
+    pieces.forEach((piece) => Puzzle.flashPieceOutline(piece));
+  };
+
+  Puzzle.getGroupForPiece = function getGroupForPiece(piece) {
+    if (!piece.groupId) {
+      return null;
+    }
+    return Puzzle.state.groups.get(piece.groupId) || null;
+  };
+
+  Puzzle.createGroup = function createGroup() {
+    const id = Puzzle.state.nextGroupId;
+    Puzzle.state.nextGroupId += 1;
+    const group = { id, pieces: new Set() };
+    Puzzle.state.groups.set(id, group);
+    return group;
+  };
+
+  Puzzle.mergeGroups = function mergeGroups(targetGroup, sourceGroup) {
+    if (!sourceGroup || sourceGroup === targetGroup) {
+      return;
+    }
+    sourceGroup.pieces.forEach((piece) => {
+      targetGroup.pieces.add(piece);
+      piece.groupId = targetGroup.id;
+    });
+    Puzzle.state.groups.delete(sourceGroup.id);
+  };
+
+  Puzzle.removePieceFromGroup = function removePieceFromGroup(piece) {
+    const group = Puzzle.getGroupForPiece(piece);
+    if (!group) {
+      return;
+    }
+    group.pieces.delete(piece);
+    piece.groupId = null;
+    if (group.pieces.size >= 2) {
+      return;
+    }
+    group.pieces.forEach((remaining) => {
+      remaining.groupId = null;
+    });
+    Puzzle.state.groups.delete(group.id);
+  };
+
+  Puzzle.addPieceToGroup = function addPieceToGroup(piece, group) {
+    if (piece.groupId === group.id) {
+      return;
+    }
+    Puzzle.removePieceFromGroup(piece);
+    group.pieces.add(piece);
+    piece.groupId = group.id;
+  };
+
+  Puzzle.getGroupsForPieces = function getGroupsForPieces(pieces) {
+    const groups = new Set();
+    pieces.forEach((piece) => {
+      const group = Puzzle.getGroupForPiece(piece);
+      if (group) {
+        groups.add(group);
+      }
+    });
+    return [...groups];
+  };
+
+  Puzzle.joinPiecesAsGroup = function joinPiecesAsGroup(pieces) {
+    const unique = [...new Set(pieces)];
+    if (unique.length < 2) {
+      return null;
+    }
+    const groups = Puzzle.getGroupsForPieces(unique);
+    const group = groups[0] || Puzzle.createGroup();
+    groups.slice(1).forEach((existing) => Puzzle.mergeGroups(group, existing));
+    unique.forEach((piece) => {
+      Puzzle.unlockPiece(piece);
+      Puzzle.addPieceToGroup(piece, group);
+    });
+    return group;
+  };
+
+  Puzzle.clearGroup = function clearGroup(group) {
+    if (!group) {
+      return;
+    }
+    group.pieces.forEach((piece) => {
+      piece.groupId = null;
+    });
+    Puzzle.state.groups.delete(group.id);
+  };
+
+  Puzzle.getGroupPieces = function getGroupPieces(piece) {
+    const group = Puzzle.getGroupForPiece(piece);
+    if (!group) {
+      return [piece];
+    }
+    return [...group.pieces];
+  };
+
+  Puzzle.translatePieces = function translatePieces(pieces, dx, dy) {
+    pieces.forEach((piece) => {
+      const pos = Puzzle.getPiecePosition(piece);
+      Puzzle.setPiecePosition(piece, pos.x + dx, pos.y + dy);
+      piece.location = "board";
+    });
+  };
+
+  Puzzle.findPieceAt = function findPieceAt(row, col) {
+    return Puzzle.state.pieces.find((piece) => piece.row === row && piece.col === col);
+  };
+
+  Puzzle.arePiecesAligned = function arePiecesAligned(basePiece, neighborPiece) {
+    const expected = Puzzle.getNeighborSnapPosition(basePiece, neighborPiece);
+    const neighborPos = Puzzle.getPiecePosition(neighborPiece);
+    const distance = Math.hypot(expected.x - neighborPos.x, expected.y - neighborPos.y);
+    return distance <= Puzzle.getSnapThreshold();
+  };
+
+  Puzzle.getNeighborPositions = function getNeighborPositions(piece) {
+    return [
+      { row: piece.row - 1, col: piece.col },
+      { row: piece.row + 1, col: piece.col },
+      { row: piece.row, col: piece.col - 1 },
+      { row: piece.row, col: piece.col + 1 }
+    ];
+  };
+
+  Puzzle.findAlignedCluster = function findAlignedCluster(startPiece) {
+    const cluster = new Set([startPiece]);
+    const queue = [startPiece];
+    while (queue.length) {
+      const current = queue.shift();
+      Puzzle.getNeighborPositions(current).forEach((position) => {
+        const neighbor = Puzzle.findPieceAt(position.row, position.col);
+        if (!neighbor || neighbor.locked || neighbor.location === "tray") {
+          return;
+        }
+        if (cluster.has(neighbor)) {
+          return;
+        }
+        if (!Puzzle.arePiecesAligned(current, neighbor)) {
+          return;
+        }
+        cluster.add(neighbor);
+        queue.push(neighbor);
+      });
+    }
+    return [...cluster];
+  };
+
+  Puzzle.findNeighborSnapForGroup = function findNeighborSnapForGroup(pieces) {
+    const pieceSet = new Set(pieces);
+    let best = null;
+    const threshold = Puzzle.getSnapThreshold();
+    pieces.forEach((piece) => {
+      Puzzle.getNeighborPositions(piece).forEach((position) => {
+        const neighbor = Puzzle.findPieceAt(position.row, position.col);
+        if (!neighbor || neighbor.locked || neighbor.location === "tray" || pieceSet.has(neighbor)) {
+          return;
+        }
+        const expected = Puzzle.getNeighborSnapPosition(neighbor, piece);
+        const pos = Puzzle.getPiecePosition(piece);
+        const dx = expected.x - pos.x;
+        const dy = expected.y - pos.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance > threshold) {
+          return;
+        }
+        if (!best || distance < best.distance) {
+          best = { piece, neighbor, dx, dy, distance };
+        }
+      });
+    });
+    return best;
+  };
+
+  Puzzle.trySnapGroupToNeighbor = function trySnapGroupToNeighbor(pieces) {
+    const match = Puzzle.findNeighborSnapForGroup(pieces);
+    if (!match) {
+      return false;
+    }
+    Puzzle.translatePieces(pieces, match.dx, match.dy);
+    const neighborGroupPieces = Puzzle.getGroupPieces(match.neighbor);
+    Puzzle.joinPiecesAsGroup([match.neighbor, ...pieces]);
+    const flashSet = new Set([...pieces, ...neighborGroupPieces]);
+    Puzzle.flashPieces([...flashSet]);
+    return true;
+  };
+
+  Puzzle.ensureGroupForPiece = function ensureGroupForPiece(piece) {
+    const existing = Puzzle.getGroupForPiece(piece);
+    if (existing) {
+      return existing;
+    }
+    if (piece.locked) {
+      return null;
+    }
+    const cluster = Puzzle.findAlignedCluster(piece);
+    if (cluster.length < 2) {
+      return null;
+    }
+    return Puzzle.joinPiecesAsGroup(cluster);
+  };
+
+  Puzzle.getNeighborSnapPosition = function getNeighborSnapPosition(basePiece, neighborPiece) {
+    const { pieceSize } = Puzzle.state;
+    const basePos = Puzzle.getPiecePosition(basePiece);
+    const colDiff = neighborPiece.col - basePiece.col;
+    const rowDiff = neighborPiece.row - basePiece.row;
+    return {
+      x: basePos.x + colDiff * pieceSize.width,
+      y: basePos.y + rowDiff * pieceSize.height
+    };
+  };
+
+  Puzzle.snapNeighborsToLockedPiece = function snapNeighborsToLockedPiece(lockedPiece) {
+    Puzzle.getNeighborPositions(lockedPiece).forEach((position) => {
+      const neighbor = Puzzle.findPieceAt(position.row, position.col);
+      if (!neighbor || neighbor.locked || neighbor.location === "tray") {
+        return;
+      }
+      const expected = Puzzle.getNeighborSnapPosition(lockedPiece, neighbor);
+      const neighborPos = Puzzle.getPiecePosition(neighbor);
+      const dx = expected.x - neighborPos.x;
+      const dy = expected.y - neighborPos.y;
+      const neighborGroupPieces = Puzzle.getGroupPieces(neighbor);
+      Puzzle.translatePieces(neighborGroupPieces, dx, dy);
+      Puzzle.joinPiecesAsGroup([lockedPiece, neighbor]);
+      Puzzle.flashPieces(neighborGroupPieces);
+    });
   };
 
   Puzzle.createPieceElement = function createPieceElement(piece) {
@@ -214,28 +519,13 @@
   };
 
   Puzzle.trySnapPiece = function trySnapPiece(piece) {
-    const { boardRect, pieceSize, pieceOuter } = Puzzle.state;
-    if (!boardRect) {
-      return false;
-    }
-    const target = Puzzle.getPieceTarget(piece);
-    const pieceCenter = {
-      x: piece.dragX + pieceOuter.width / 2,
-      y: piece.dragY + pieceOuter.height / 2
-    };
-    const targetCenter = {
-      x: target.x + pieceSize.width / 2,
-      y: target.y + pieceSize.height / 2
-    };
-    const dx = pieceCenter.x - targetCenter.x;
-    const dy = pieceCenter.y - targetCenter.y;
-    const distance = Math.hypot(dx, dy);
-    const threshold = Math.min(pieceSize.width, pieceSize.height) * Puzzle.constants.SNAP_THRESHOLD;
-    if (distance > threshold) {
+    if (!Puzzle.isPieceCloseToTarget(piece)) {
       return false;
     }
     const snap = Puzzle.getPieceSnapPosition(piece);
     Puzzle.lockPiece(piece, snap.x, snap.y);
+    Puzzle.flashPieceOutline(piece);
+    Puzzle.snapNeighborsToLockedPiece(piece);
     return true;
   };
 

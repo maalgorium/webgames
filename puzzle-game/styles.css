@@ -245,6 +245,24 @@ button.secondary:hover {
   fill: none;
 }
 
+.piece .piece-outline.flash-outline {
+  animation: outline-flash 0.6s ease-out;
+  stroke: rgba(255, 198, 72, 0.95);
+  stroke-width: 2.5;
+}
+
+@keyframes outline-flash {
+  0% {
+    stroke-opacity: 0;
+  }
+  35% {
+    stroke-opacity: 1;
+  }
+  100% {
+    stroke-opacity: 0;
+  }
+}
+
 .piece.dragging {
   cursor: grabbing;
   transform: scale(1.03);
