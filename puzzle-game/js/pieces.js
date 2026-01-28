@@ -554,6 +554,7 @@
     }
     Puzzle.state.completed.add(Puzzle.state.currentImage.id);
     Puzzle.saveCompleted();
+    Puzzle.clearSelectedImage();
     Puzzle.updateGalleryStatus();
   };
 })();

@@ -11,7 +11,7 @@
     Puzzle.bindControls();
     Puzzle.initPreview();
     Puzzle.setupObservers();
-    Puzzle.selectImage(Puzzle.state.images[0]);
+    Puzzle.loadSelectedImage();
   };
 
   Puzzle.init();

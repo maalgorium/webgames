@@ -19,6 +19,36 @@
     localStorage.setItem(Puzzle.constants.STORAGE_KEY, JSON.stringify([...Puzzle.state.completed]));
   };
 
+  Puzzle.saveSelectedImage = function saveSelectedImage(image) {
+    if (!image) {
+      return;
+    }
+    if (Puzzle.state.completed.has(image.id)) {
+      Puzzle.clearSelectedImage();
+      return;
+    }
+    localStorage.setItem(Puzzle.constants.STORAGE_SELECTED, image.id);
+  };
+
+  Puzzle.clearSelectedImage = function clearSelectedImage() {
+    localStorage.removeItem(Puzzle.constants.STORAGE_SELECTED);
+  };
+
+  Puzzle.loadSelectedImage = function loadSelectedImage() {
+    const stored = localStorage.getItem(Puzzle.constants.STORAGE_SELECTED);
+    if (!stored) {
+      Puzzle.updatePreviewImage();
+      return;
+    }
+    const image = Puzzle.state.images.find((item) => item.id === stored);
+    if (!image || Puzzle.state.completed.has(image.id)) {
+      Puzzle.clearSelectedImage();
+      Puzzle.updatePreviewImage();
+      return;
+    }
+    Puzzle.selectImage(image);
+  };
+
   Puzzle.buildGallery = function buildGallery() {
     Puzzle.elements.gallery.innerHTML = "";
     Puzzle.state.galleryItems.clear();
@@ -89,6 +119,7 @@
       return;
     }
     Puzzle.state.currentImage = image;
+    Puzzle.saveSelectedImage(image);
     Puzzle.updateGalleryStatus();
     Puzzle.loadImageData(image.src)
       .then((data) => {
@@ -104,8 +135,10 @@
   };
 
   Puzzle.updatePreviewImage = function updatePreviewImage() {
-    Puzzle.elements.previewImage.src = Puzzle.state.currentImage?.src || "";
-    Puzzle.elements.previewImage.alt = Puzzle.state.currentImage
+    const hasImage = Boolean(Puzzle.state.currentImage);
+    Puzzle.elements.preview.classList.toggle("is-hidden", !hasImage);
+    Puzzle.elements.previewImage.src = hasImage ? Puzzle.state.currentImage.src : "";
+    Puzzle.elements.previewImage.alt = hasImage
       ? `${Puzzle.state.currentImage.label} preview`
       : "Puzzle preview";
     Puzzle.applyPreviewRect();

@@ -11,7 +11,8 @@
     TRAY_PADDING: 16,
     TRAY_GAP: 12,
     SNAP_THRESHOLD: 0.35,
-    STORAGE_KEY: "puzzle.completed"
+    STORAGE_KEY: "puzzle.completed",
+    STORAGE_SELECTED: "puzzle.selected"
   };
 
   Puzzle.state = {
@@ -39,6 +40,12 @@
     pieceCount: document.getElementById("piece-count"),
     shuffle: document.getElementById("shuffle"),
     reset: document.getElementById("reset"),
+    menuToggle: document.getElementById("menu-toggle"),
+    overflowToggle: document.getElementById("overflow-toggle"),
+    overflowMenu: document.getElementById("overflow-menu"),
+    drawerBackdrop: document.getElementById("drawer-backdrop"),
+    galleryDrawer: document.getElementById("gallery-drawer"),
+    galleryClose: document.getElementById("gallery-close"),
     playArea: document.getElementById("play-area"),
     boardZone: document.getElementById("board-zone"),
     board: document.getElementById("board"),

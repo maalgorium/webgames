@@ -9,21 +9,17 @@
   <body>
     <div class="page">
       <header class="top-bar">
-        <div class="title-block">
-          <h1>Puzzle Game</h1>
-          <p>Drag pieces into the board. Works with mouse or touch.</p>
-        </div>
-        <div class="actions">
-          <div class="stat">Placed: <span id="piece-count">0 / 0</span></div>
-          <button class="secondary" id="shuffle" type="button">Shuffle</button>
-          <button id="reset" type="button">Reset</button>
+        <button class="icon-button" id="menu-toggle" type="button" aria-label="Open gallery">☰</button>
+        <h1 class="top-title">Puzzle Game</h1>
+        <div class="top-progress">Placed: <span id="piece-count">0 / 0</span></div>
+        <div class="overflow">
+          <button class="icon-button" id="overflow-toggle" type="button" aria-label="More options">⋯</button>
+          <div class="overflow-menu" id="overflow-menu" role="menu">
+            <button class="secondary" id="shuffle" type="button" role="menuitem">Shuffle</button>
+            <button id="reset" type="button" role="menuitem">Reset</button>
+          </div>
         </div>
       </header>
-
-      <section class="gallery-panel">
-        <div class="gallery-title">Gallery</div>
-        <div class="gallery-grid" id="gallery"></div>
-      </section>
 
       <main class="play-area" id="play-area">
         <div class="board-zone" id="board-zone">
@@ -35,6 +31,15 @@
         </div>
       </main>
     </div>
+
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+    <aside class="gallery-drawer" id="gallery-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div class="drawer-title">Gallery</div>
+        <button class="icon-button" id="gallery-close" type="button" aria-label="Close gallery">✕</button>
+      </div>
+      <div class="gallery-grid drawer-grid" id="gallery"></div>
+    </aside>
 
     <div class="preview" id="preview">
       <div class="preview-bar">Preview</div>
@@ -51,6 +56,7 @@
     <script src="js/drag.js" defer></script>
     <script src="js/gallery.js" defer></script>
     <script src="js/preview.js" defer></script>
+    <script src="js/ui.js" defer></script>
     <script src="js/main.js" defer></script>
   </body>
 </html>
