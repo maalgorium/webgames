@@ -186,6 +186,7 @@
     const { piece, pieces, pointerId } = Puzzle.state.dragging;
     piece.element.releasePointerCapture(pointerId);
     Puzzle.setDraggingState(pieces, false);
+    pieces.forEach((dragPiece) => Puzzle.syncPiecePosition(dragPiece));
     Puzzle.state.dragging = null;
     if (pieces.length > 1) {
       Puzzle.finishGroupDrop(pieces);

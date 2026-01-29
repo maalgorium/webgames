@@ -59,9 +59,22 @@
     if (!Puzzle.state.trayRect || !Puzzle.state.pieceOuter.width) {
       return;
     }
-    const unlocked = Puzzle.state.pieces
+    const unlocked = Puzzle.getTrayPieces();
+    if (Puzzle.state.trayCollapsed) {
+      Puzzle.layoutTrayFilmstrip(unlocked);
+      return;
+    }
+    Puzzle.layoutTrayGrid(unlocked);
+  };
+
+  Puzzle.getTrayPieces = function getTrayPieces() {
+    return Puzzle.state.pieces
       .filter((piece) => !piece.locked && piece.location === "tray")
       .sort((a, b) => a.order - b.order);
+  };
+
+  Puzzle.layoutTrayGrid = function layoutTrayGrid(unlocked) {
+    Puzzle.clearTraySpacer();
     const availableWidth = Puzzle.state.trayRect.width - Puzzle.constants.TRAY_PADDING * 2;
     const cellWidth = Puzzle.state.pieceOuter.width + Puzzle.constants.TRAY_GAP;
     const columns = Math.max(1, Math.floor((availableWidth + Puzzle.constants.TRAY_GAP) / cellWidth));
@@ -82,11 +95,57 @@
     Puzzle.setTraySurfaceHeight(rows);
   };
 
-  Puzzle.setTraySurfaceHeight = function setTraySurfaceHeight(rows) {
+  Puzzle.layoutTrayFilmstrip = function layoutTrayFilmstrip(unlocked) {
+    Puzzle.clearTraySpacer();
+    const cellWidth = Puzzle.state.pieceOuter.width + Puzzle.constants.TRAY_GAP;
+    const height = Puzzle.state.pieceOuter.height + Puzzle.constants.TRAY_PADDING * 2;
+    const width =
+      Puzzle.constants.TRAY_PADDING * 2 +
+      Math.max(0, unlocked.length) * cellWidth -
+      (unlocked.length ? Puzzle.constants.TRAY_GAP : 0);
+
+    unlocked.forEach((piece, index) => {
+      if (Puzzle.state.dragging?.piece === piece) {
+        return;
+      }
+      const x = Puzzle.constants.TRAY_PADDING + index * cellWidth;
+      const y = Puzzle.constants.TRAY_PADDING;
+      piece.home = { x, y };
+      Puzzle.placePieceInTray(piece);
+    });
+
+    Puzzle.setTraySurfaceHeight(1, height);
+    Puzzle.setTraySpacer(width, height);
+  };
+
+  Puzzle.setTraySurfaceHeight = function setTraySurfaceHeight(rows, minHeight) {
+    const height = Puzzle.getTraySurfaceHeight(rows, minHeight);
+    Puzzle.elements.traySurface.style.height = `${height}px`;
+  };
+
+  Puzzle.getTraySurfaceHeight = function getTraySurfaceHeight(rows, minHeight = 200) {
     const height =
       rows * (Puzzle.state.pieceOuter.height + Puzzle.constants.TRAY_GAP) -
       Puzzle.constants.TRAY_GAP +
       Puzzle.constants.TRAY_PADDING * 2;
-    Puzzle.elements.traySurface.style.height = `${Math.max(height, 200)}px`;
+    return Math.max(height, minHeight);
+  };
+
+  Puzzle.setTraySpacer = function setTraySpacer(width, height) {
+    const { traySpacer } = Puzzle.elements;
+    if (!traySpacer) {
+      return;
+    }
+    traySpacer.style.width = `${Math.max(width, 0)}px`;
+    traySpacer.style.height = `${Math.max(height, 0)}px`;
+  };
+
+  Puzzle.clearTraySpacer = function clearTraySpacer() {
+    const { traySpacer } = Puzzle.elements;
+    if (!traySpacer) {
+      return;
+    }
+    traySpacer.style.width = "";
+    traySpacer.style.height = "";
   };
 })();

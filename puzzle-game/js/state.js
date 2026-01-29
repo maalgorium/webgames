@@ -32,7 +32,8 @@
     layoutQueued: false,
     preview: { x: 24, y: 24, width: 260, ratio: 1 },
     previewAction: null,
-    galleryItems: new Map()
+    galleryItems: new Map(),
+    trayCollapsed: false
   };
 
   Puzzle.elements = {
@@ -50,7 +51,9 @@
     boardZone: document.getElementById("board-zone"),
     board: document.getElementById("board"),
     tray: document.getElementById("tray"),
+    trayToggle: document.getElementById("tray-toggle"),
     traySurface: document.getElementById("tray-surface"),
+    traySpacer: document.getElementById("tray-spacer"),
     preview: document.getElementById("preview"),
     previewImage: document.getElementById("preview-image"),
     previewResize: document.getElementById("preview-resize")

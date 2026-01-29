@@ -6,7 +6,9 @@
     overflowMenu,
     drawerBackdrop,
     galleryDrawer,
-    galleryClose
+    galleryClose,
+    tray,
+    trayToggle
   } = Puzzle.elements || {};
 
   if (!menuToggle || !overflowToggle || !overflowMenu || !drawerBackdrop || !galleryDrawer || !galleryClose) {
@@ -29,6 +31,17 @@
   const setOverflowOpen = (isOpen) => {
     toggleClass(overflowMenu, "open", isOpen);
     overflowToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  };
+
+  const setTrayCollapsed = (isCollapsed) => {
+    if (!tray || !trayToggle) {
+      return;
+    }
+    toggleClass(tray, "collapsed", isCollapsed);
+    trayToggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+    trayToggle.setAttribute("aria-label", isCollapsed ? "Expand pieces" : "Collapse pieces");
+    Puzzle.state.trayCollapsed = isCollapsed;
+    Puzzle.scheduleLayout();
   };
 
   const handleDocumentClick = (event) => {
@@ -59,6 +72,12 @@
     setOverflowOpen(!isOpen);
   });
   overflowMenu.addEventListener("click", () => setOverflowOpen(false));
+  if (trayToggle) {
+    trayToggle.addEventListener("click", () => {
+      const isCollapsed = tray?.classList.contains("collapsed");
+      setTrayCollapsed(!isCollapsed);
+    });
+  }
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("keydown", handleKeyDown);
 })();

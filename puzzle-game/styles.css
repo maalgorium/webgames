@@ -296,6 +296,21 @@ button.secondary:hover {
   border-radius: 18px;
   padding: 14px 16px 18px;
   box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+}
+
+.tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tray-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 1rem;
 }
 
 .tray-title {
@@ -304,12 +319,38 @@ button.secondary:hover {
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .tray-surface {
   position: relative;
   min-height: 200px;
+}
+
+.tray-spacer {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.tray.collapsed {
+  padding: 10px 12px;
+  gap: 6px;
+}
+
+.tray.collapsed .tray-title {
+  font-size: 0.75rem;
+}
+
+.tray.collapsed .tray-toggle {
+  transform: rotate(180deg);
+}
+
+.tray.collapsed .tray-surface {
+  min-height: 88px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .piece {

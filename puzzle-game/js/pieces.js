@@ -68,6 +68,12 @@
     return { x: rect.x, y: rect.y };
   };
 
+  Puzzle.syncPiecePosition = function syncPiecePosition(piece) {
+    const rect = Puzzle.getRelativeRect(piece.element, Puzzle.elements.playArea);
+    piece.dragX = rect.x;
+    piece.dragY = rect.y;
+  };
+
   Puzzle.getSnapThreshold = function getSnapThreshold() {
     const { pieceSize } = Puzzle.state;
     return Math.min(pieceSize.width, pieceSize.height) * Puzzle.constants.SNAP_THRESHOLD;
@@ -487,9 +493,10 @@
 
   Puzzle.getPieceCenter = function getPieceCenter(piece) {
     const { pieceOuter } = Puzzle.state;
+    const pos = Puzzle.getPiecePosition(piece);
     return {
-      x: piece.dragX + pieceOuter.width / 2,
-      y: piece.dragY + pieceOuter.height / 2
+      x: pos.x + pieceOuter.width / 2,
+      y: pos.y + pieceOuter.height / 2
     };
   };
 
