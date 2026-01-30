@@ -29,6 +29,7 @@
   };
 
   Puzzle.init = function init() {
+    Puzzle.loadImages();
     Puzzle.loadCompleted();
     Puzzle.buildGallery();
     Puzzle.bindControls();

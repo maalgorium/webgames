@@ -19,6 +19,43 @@
     localStorage.setItem(Puzzle.constants.STORAGE_KEY, JSON.stringify([...Puzzle.state.completed]));
   };
 
+  Puzzle.saveImages = function saveImages() {
+    const imagesToSave = Puzzle.state.images.map(img => ({
+      id: img.id,
+      src: img.src,
+      label: img.label,
+      source: img.source,
+      sourceUrl: img.sourceUrl,
+      attribution: img.attribution
+    }));
+
+    try {
+      localStorage.setItem(Puzzle.constants.STORAGE_IMAGES, JSON.stringify(imagesToSave));
+    } catch (error) {
+      console.error("Failed to save images:", error);
+      // Check if quota exceeded
+      if (error.name === "QuotaExceededError") {
+        alert("Storage limit reached. Try removing some museum images.");
+      }
+    }
+  };
+
+  Puzzle.loadImages = function loadImages() {
+    try {
+      const stored = localStorage.getItem(Puzzle.constants.STORAGE_IMAGES);
+      if (stored) {
+        const images = JSON.parse(stored);
+        Puzzle.state.images = images;
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to load images:", error);
+    }
+
+    // Fall back to default images from constants
+    Puzzle.state.images = [...Puzzle.constants.IMAGES];
+  };
+
   Puzzle.saveSelectedImage = function saveSelectedImage(image) {
     if (!image) {
       return;
@@ -50,14 +87,77 @@
   };
 
   Puzzle.buildGallery = function buildGallery() {
-    Puzzle.elements.gallery.innerHTML = "";
+    const container = Puzzle.elements.gallery;
+    container.innerHTML = "";
+
+    // Create tab bar
+    const tabBar = document.createElement("div");
+    tabBar.className = "gallery-tabs";
+
+    const localTab = Puzzle.createTabButton("local", "My Images", true);
+    const museumTab = Puzzle.createTabButton("museum", "Browse Museums", false);
+
+    tabBar.appendChild(localTab);
+    tabBar.appendChild(museumTab);
+    container.appendChild(tabBar);
+
+    // Create tab content containers
+    const localContent = document.createElement("div");
+    localContent.className = "gallery-tab-content active";
+    localContent.dataset.tab = "local";
+
+    const museumContent = document.createElement("div");
+    museumContent.className = "gallery-tab-content";
+    museumContent.dataset.tab = "museum";
+
+    // Build local gallery (existing code)
+    Puzzle.buildLocalGallery(localContent);
+
+    // Build museum interface
+    Puzzle.buildMuseumInterface(museumContent);
+
+    container.appendChild(localContent);
+    container.appendChild(museumContent);
+
+    Puzzle.updateGalleryStatus();
+  };
+
+  Puzzle.createTabButton = function createTabButton(tabName, label, isActive) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `gallery-tab-button ${isActive ? "active" : ""}`;
+    button.dataset.tab = tabName;
+    button.textContent = label;
+    button.addEventListener("click", () => Puzzle.switchTab(tabName));
+    return button;
+  };
+
+  Puzzle.buildLocalGallery = function buildLocalGallery(container) {
+    const grid = document.createElement("div");
+    grid.className = "gallery-grid drawer-grid";
+
     Puzzle.state.galleryItems.clear();
     Puzzle.state.images.forEach((image) => {
       const item = Puzzle.createGalleryItem(image);
-      Puzzle.elements.gallery.appendChild(item);
+      grid.appendChild(item);
       Puzzle.state.galleryItems.set(image.id, item);
     });
-    Puzzle.updateGalleryStatus();
+
+    container.appendChild(grid);
+  };
+
+  Puzzle.switchTab = function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll(".gallery-tab-button").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tab === tabName);
+    });
+
+    // Update tab content
+    document.querySelectorAll(".gallery-tab-content").forEach(content => {
+      content.classList.toggle("active", content.dataset.tab === tabName);
+    });
+
+    Puzzle.state.activeGalleryTab = tabName;
   };
 
   Puzzle.createGalleryItem = function createGalleryItem(image) {
@@ -82,9 +182,44 @@
     item.appendChild(thumb);
     item.appendChild(label);
 
+    // Add delete button for museum images
+    if (image.source === "met") {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "gallery-delete";
+      deleteBtn.innerHTML = "✕";
+      deleteBtn.title = "Remove from collection";
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        Puzzle.deleteMuseumImage(image.id);
+      });
+      item.appendChild(deleteBtn);
+    }
+
     item.addEventListener("click", () => Puzzle.selectImage(image));
 
     return item;
+  };
+
+  Puzzle.deleteMuseumImage = function deleteMuseumImage(imageId) {
+    // Don't delete if currently selected
+    if (Puzzle.state.currentImage?.id === imageId) {
+      alert("Cannot delete the currently active puzzle. Please select a different image first.");
+      return;
+    }
+
+    // Confirm deletion
+    if (!confirm("Remove this image from your collection?")) {
+      return;
+    }
+
+    // Remove from state
+    Puzzle.state.images = Puzzle.state.images.filter(img => img.id !== imageId);
+
+    // Save to localStorage
+    Puzzle.saveImages();
+
+    // Rebuild gallery
+    Puzzle.buildGallery();
   };
 
   Puzzle.updateGalleryStatus = function updateGalleryStatus() {

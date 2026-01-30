@@ -12,7 +12,8 @@
     TRAY_GAP: 12,
     SNAP_THRESHOLD: 0.35,
     STORAGE_KEY: "puzzle.completed",
-    STORAGE_SELECTED: "puzzle.selected"
+    STORAGE_SELECTED: "puzzle.selected",
+    STORAGE_IMAGES: "puzzle.images"
   };
 
   Puzzle.state = {
@@ -35,7 +36,15 @@
     preview: { x: 24, y: 24, width: 260, ratio: 1 },
     previewAction: null,
     galleryItems: new Map(),
-    trayCollapsed: false
+    trayCollapsed: false,
+    museumSearch: {
+      query: "",
+      results: [],
+      total: 0,
+      hasMore: false,
+      offset: 0
+    },
+    activeGalleryTab: "local"
   };
 
   Puzzle.elements = {
