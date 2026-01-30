@@ -346,6 +346,8 @@
   };
 
   Puzzle.snapNeighborsToLockedPiece = function snapNeighborsToLockedPiece(lockedPiece) {
+    const threshold = Puzzle.getSnapThreshold();
+
     Puzzle.getNeighborPositions(lockedPiece).forEach((position) => {
       const neighbor = Puzzle.findPieceAt(position.row, position.col);
       if (!neighbor || neighbor.locked || neighbor.location === "tray") {
@@ -355,6 +357,12 @@
       const neighborPos = Puzzle.getPiecePosition(neighbor);
       const dx = expected.x - neighborPos.x;
       const dy = expected.y - neighborPos.y;
+
+      const distance = Math.hypot(dx, dy);
+      if (distance > threshold) {
+        return;
+      }
+
       const neighborGroupPieces = Puzzle.getGroupPieces(neighbor);
       Puzzle.translatePieces(neighborGroupPieces, dx, dy);
       Puzzle.joinPiecesAsGroup([lockedPiece, neighbor]);
