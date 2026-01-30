@@ -22,6 +22,9 @@
       Puzzle.startPreviewResize(event);
       return;
     }
+    if (event.target === Puzzle.elements.previewToggle) {
+      return;
+    }
     Puzzle.startPreviewDrag(event);
   };
 

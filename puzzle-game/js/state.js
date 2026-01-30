@@ -35,6 +35,7 @@
     lastBoardSize: null,
     preview: { x: 24, y: 24, width: 260, ratio: 1 },
     previewAction: null,
+    previewHidden: false,
     galleryItems: new Map(),
     trayCollapsed: false,
     museumSearch: {
@@ -67,6 +68,8 @@
     traySpacer: document.getElementById("tray-spacer"),
     preview: document.getElementById("preview"),
     previewImage: document.getElementById("preview-image"),
-    previewResize: document.getElementById("preview-resize")
+    previewResize: document.getElementById("preview-resize"),
+    previewToggle: document.getElementById("preview-toggle"),
+    previewShow: document.getElementById("preview-show")
   };
 })();

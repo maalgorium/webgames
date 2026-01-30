@@ -743,6 +743,67 @@ button.secondary:hover {
   letter-spacing: 0.08em;
   color: var(--muted);
   background: rgba(31, 79, 95, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-toggle {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  padding: 0;
+  background: rgba(217, 107, 63, 0.15);
+  color: var(--accent);
+  font-size: 0.9rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.preview-toggle:hover {
+  background: rgba(217, 107, 63, 0.25);
+  transform: none;
+  box-shadow: none;
+}
+
+.preview-show-button {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--accent-2);
+  font-size: 1.3rem;
+  border: 1px solid rgba(31, 79, 95, 0.2);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  z-index: 45;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.preview-show-button.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.preview-show-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(31, 79, 95, 0.2);
 }
 
 .preview img {
@@ -784,6 +845,11 @@ button.secondary:hover {
   }
 
   .preview {
+    right: 12px;
+    top: 12px;
+  }
+
+  .preview-show-button {
     right: 12px;
     top: 12px;
   }

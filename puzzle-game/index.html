@@ -47,10 +47,15 @@
     </aside>
 
     <div class="preview" id="preview">
-      <div class="preview-bar">Preview</div>
+      <div class="preview-bar">
+        <span>Preview</span>
+        <button class="preview-toggle" id="preview-toggle" type="button" aria-label="Hide preview">✕</button>
+      </div>
       <img id="preview-image" alt="Puzzle preview" />
       <div class="preview-resize" id="preview-resize" role="button" aria-label="Resize preview"></div>
     </div>
+
+    <button class="preview-show-button" id="preview-show" type="button" aria-label="Show preview">👁</button>
 
     <script src="js/state.js" defer></script>
     <script src="js/utils.js" defer></script>

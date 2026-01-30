@@ -8,7 +8,10 @@
     galleryDrawer,
     galleryClose,
     tray,
-    trayToggle
+    trayToggle,
+    preview,
+    previewToggle,
+    previewShow
   } = Puzzle.elements || {};
 
   if (!menuToggle || !overflowToggle || !overflowMenu || !drawerBackdrop || !galleryDrawer || !galleryClose) {
@@ -44,6 +47,17 @@
     Puzzle.scheduleLayout();
   };
 
+  const setPreviewHidden = (isHidden) => {
+    if (!preview || !previewToggle || !previewShow) {
+      return;
+    }
+    toggleClass(preview, "is-hidden", isHidden);
+    toggleClass(previewShow, "visible", isHidden);
+    previewToggle.setAttribute("aria-label", isHidden ? "Show preview" : "Hide preview");
+    previewShow.setAttribute("aria-label", isHidden ? "Show preview" : "Hide preview");
+    Puzzle.state.previewHidden = isHidden;
+  };
+
   const handleDocumentClick = (event) => {
     if (overflowMenu.classList.contains("open")) {
       const inMenu = overflowMenu.contains(event.target) || overflowToggle.contains(event.target);
@@ -76,6 +90,17 @@
     trayToggle.addEventListener("click", () => {
       const isCollapsed = tray?.classList.contains("collapsed");
       setTrayCollapsed(!isCollapsed);
+    });
+  }
+  if (previewToggle) {
+    previewToggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setPreviewHidden(true);
+    });
+  }
+  if (previewShow) {
+    previewShow.addEventListener("click", () => {
+      setPreviewHidden(false);
     });
   }
   document.addEventListener("click", handleDocumentClick);
