@@ -14,7 +14,8 @@
     if (!Puzzle.state.imageData) {
       return;
     }
-    Puzzle.updateBoardSize();
+
+    // Board sizing is now CSS's job - just read dimensions
     Puzzle.updateRects();
     Puzzle.updatePieceMetrics();
     Puzzle.updatePieceStyles();
@@ -23,17 +24,9 @@
     Puzzle.updatePieceCount();
   };
 
-  Puzzle.updateBoardSize = function updateBoardSize() {
-    const zoneRect = Puzzle.elements.boardZone.getBoundingClientRect();
-    const ratio = Puzzle.state.imageData?.ratio || 1;
-    let width = zoneRect.width - 8;
-    let height = width / ratio;
-    if (height > zoneRect.height - 8) {
-      height = zoneRect.height - 8;
-      width = height * ratio;
-    }
-    Puzzle.elements.board.style.width = `${width}px`;
-    Puzzle.elements.board.style.height = `${height}px`;
+  Puzzle.updateBoardRatio = function updateBoardRatio() {
+    const ratio = Puzzle.state.imageData?.ratio || 1.5;
+    Puzzle.elements.board.style.setProperty('--puzzle-ratio', ratio);
   };
 
   Puzzle.updateRects = function updateRects() {
@@ -98,7 +91,6 @@
   Puzzle.layoutTrayFilmstrip = function layoutTrayFilmstrip(unlocked) {
     Puzzle.clearTraySpacer();
     const cellWidth = Puzzle.state.pieceOuter.width + Puzzle.constants.TRAY_GAP;
-    const height = Puzzle.state.pieceOuter.height + Puzzle.constants.TRAY_PADDING * 2;
     const width =
       Puzzle.constants.TRAY_PADDING * 2 +
       Math.max(0, unlocked.length) * cellWidth -
@@ -114,13 +106,25 @@
       Puzzle.placePieceInTray(piece);
     });
 
-    Puzzle.setTraySurfaceHeight(1, height);
-    Puzzle.setTraySpacer(width, height);
+    Puzzle.setTraySurfaceHeight(1);
+    Puzzle.setTraySpacer(width, 1);
   };
 
-  Puzzle.setTraySurfaceHeight = function setTraySurfaceHeight(rows, minHeight) {
+  Puzzle.setTraySurfaceHeight = function setTraySurfaceHeight(rows, minHeight = 200) {
     const height = Puzzle.getTraySurfaceHeight(rows, minHeight);
-    Puzzle.elements.traySurface.style.height = `${height}px`;
+
+    // Read CSS max-height constraint
+    const computedMax = getComputedStyle(Puzzle.elements.traySurface).maxHeight;
+    const maxHeight = computedMax !== 'none'
+      ? parseInt(computedMax)
+      : window.innerHeight * 0.4;
+
+    const constrainedHeight = Math.min(height, maxHeight);
+    Puzzle.elements.traySurface.style.height = `${constrainedHeight}px`;
+
+    // Enable scrolling if constrained
+    Puzzle.elements.traySurface.style.overflowY =
+      constrainedHeight < height ? 'auto' : 'visible';
   };
 
   Puzzle.getTraySurfaceHeight = function getTraySurfaceHeight(rows, minHeight = 200) {

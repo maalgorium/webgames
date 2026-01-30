@@ -126,6 +126,7 @@
         Puzzle.state.imageData = data;
         Puzzle.state.preview.ratio = data.ratio || 1;
         Puzzle.updatePreviewImage();
+        Puzzle.updateBoardRatio();
         Puzzle.resetPieces();
         Puzzle.scheduleLayout();
       })

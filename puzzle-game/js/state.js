@@ -30,6 +30,8 @@
     groups: new Map(),
     nextGroupId: 1,
     layoutQueued: false,
+    boardObserver: null,
+    lastBoardSize: null,
     preview: { x: 24, y: 24, width: 260, ratio: 1 },
     previewAction: null,
     galleryItems: new Map(),
