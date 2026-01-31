@@ -67,6 +67,48 @@ body::before {
   text-overflow: ellipsis;
 }
 
+.top-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.piece-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.piece-selector-label {
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.piece-select {
+  padding: 6px 10px;
+  border: 1px solid rgba(31, 79, 95, 0.25);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.piece-select:hover {
+  border-color: var(--accent);
+}
+
+.piece-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+}
+
 .top-progress {
   font-weight: 600;
   font-size: 0.95rem;
@@ -78,8 +120,20 @@ body::before {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .top-progress {
+  .top-controls {
     grid-column: 1 / -1;
+    font-size: 0.85rem;
+  }
+
+  .piece-selector-label {
+    font-size: 0.85rem;
+  }
+
+  .piece-select {
+    font-size: 0.85rem;
+  }
+
+  .top-progress {
     font-size: 0.85rem;
   }
 }

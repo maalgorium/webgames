@@ -11,7 +11,19 @@
       <header class="top-bar">
         <button class="icon-button" id="menu-toggle" type="button" aria-label="Open gallery">☰</button>
         <h1 class="top-title">Puzzle Game</h1>
-        <div class="top-progress">Placed: <span id="piece-count">0 / 0</span></div>
+        <div class="top-controls">
+          <label class="piece-selector">
+            <span class="piece-selector-label">Pieces:</span>
+            <select id="piece-count-select" class="piece-select">
+              <option value="30">30</option>
+              <option value="60">60</option>
+              <option value="150" selected>150</option>
+              <option value="300">300</option>
+              <option value="600">600</option>
+            </select>
+          </label>
+          <div class="top-progress">Placed: <span id="piece-count">0 / 0</span></div>
+        </div>
         <div class="overflow">
           <button class="icon-button" id="overflow-toggle" type="button" aria-label="More options">⋯</button>
           <div class="overflow-menu" id="overflow-menu" role="menu">

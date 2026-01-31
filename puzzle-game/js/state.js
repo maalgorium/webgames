@@ -7,13 +7,13 @@
 
   Puzzle.constants = {
     IMAGES,
-    GRID: { cols: 15, rows: 10 },
     TRAY_PADDING: 16,
     TRAY_GAP: 12,
     SNAP_THRESHOLD: 0.35,
     STORAGE_KEY: "puzzle.completed",
     STORAGE_SELECTED: "puzzle.selected",
-    STORAGE_IMAGES: "puzzle.images"
+    STORAGE_IMAGES: "puzzle.images",
+    STORAGE_PIECE_COUNT: "puzzle.pieceCount"
   };
 
   Puzzle.state = {
@@ -45,12 +45,15 @@
       hasMore: false,
       offset: 0
     },
-    activeGalleryTab: "local"
+    activeGalleryTab: "local",
+    pieceCount: 150,
+    grid: { cols: 15, rows: 10 }
   };
 
   Puzzle.elements = {
     gallery: document.getElementById("gallery"),
     pieceCount: document.getElementById("piece-count"),
+    pieceCountSelect: document.getElementById("piece-count-select"),
     shuffle: document.getElementById("shuffle"),
     reset: document.getElementById("reset"),
     menuToggle: document.getElementById("menu-toggle"),

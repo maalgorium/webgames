@@ -15,6 +15,23 @@
     }
   };
 
+  Puzzle.loadPieceCount = function loadPieceCount() {
+    const stored = localStorage.getItem(Puzzle.constants.STORAGE_PIECE_COUNT);
+    if (stored) {
+      const count = parseInt(stored, 10);
+      if (!isNaN(count) && count > 0) {
+        Puzzle.state.pieceCount = count;
+        if (Puzzle.elements.pieceCountSelect) {
+          Puzzle.elements.pieceCountSelect.value = count;
+        }
+      }
+    }
+  };
+
+  Puzzle.savePieceCount = function savePieceCount() {
+    localStorage.setItem(Puzzle.constants.STORAGE_PIECE_COUNT, Puzzle.state.pieceCount);
+  };
+
   Puzzle.saveCompleted = function saveCompleted() {
     localStorage.setItem(Puzzle.constants.STORAGE_KEY, JSON.stringify([...Puzzle.state.completed]));
   };
@@ -249,6 +266,11 @@
     });
   };
 
+  Puzzle.updateGrid = function updateGrid() {
+    const aspectRatio = Puzzle.state.imageData?.ratio || 1.5;
+    Puzzle.state.grid = Puzzle.calculateGrid(Puzzle.state.pieceCount, aspectRatio);
+  };
+
   Puzzle.selectImage = function selectImage(image) {
     if (!image) {
       return;
@@ -262,6 +284,7 @@
         Puzzle.state.preview.ratio = data.ratio || 1;
         Puzzle.updatePreviewImage();
         Puzzle.updateBoardRatio();
+        Puzzle.updateGrid();
         Puzzle.resetPieces();
         Puzzle.scheduleLayout();
       })
@@ -278,5 +301,27 @@
       ? `${Puzzle.state.currentImage.label} preview`
       : "Puzzle preview";
     Puzzle.applyPreviewRect();
+  };
+
+  Puzzle.handlePieceCountChange = function handlePieceCountChange() {
+    const newCount = parseInt(Puzzle.elements.pieceCountSelect.value, 10);
+    if (isNaN(newCount) || newCount <= 0) {
+      return;
+    }
+    Puzzle.state.pieceCount = newCount;
+    Puzzle.savePieceCount();
+
+    if (Puzzle.state.currentImage && Puzzle.state.imageData) {
+      Puzzle.updateGrid();
+      Puzzle.resetPieces();
+      Puzzle.scheduleLayout();
+    }
+  };
+
+  Puzzle.bindPieceCountControl = function bindPieceCountControl() {
+    if (!Puzzle.elements.pieceCountSelect) {
+      return;
+    }
+    Puzzle.elements.pieceCountSelect.addEventListener("change", Puzzle.handlePieceCountChange);
   };
 })();

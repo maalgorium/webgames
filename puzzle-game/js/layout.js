@@ -35,13 +35,12 @@
   };
 
   Puzzle.updatePieceMetrics = function updatePieceMetrics() {
-    const { boardRect, pieceSize, pieceOuter } = Puzzle.state;
+    const { boardRect, pieceSize, pieceOuter, grid } = Puzzle.state;
     if (!boardRect) {
       return;
     }
-    const { GRID } = Puzzle.constants;
-    pieceSize.width = boardRect.width / GRID.cols;
-    pieceSize.height = boardRect.height / GRID.rows;
+    pieceSize.width = boardRect.width / grid.cols;
+    pieceSize.height = boardRect.height / grid.rows;
     const tab = Math.min(pieceSize.width, pieceSize.height) * 0.24;
     pieceOuter.tab = tab;
     pieceOuter.width = pieceSize.width + tab * 2;

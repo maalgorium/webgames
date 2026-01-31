@@ -43,16 +43,15 @@
   };
 
   Puzzle.getPieceEdges = function getPieceEdges(row, col) {
-    const { GRID } = Puzzle.constants;
-    const { edgeMaps } = Puzzle.state;
+    const { grid, edgeMaps } = Puzzle.state;
     const flat = Puzzle.createEdge(0);
     if (!edgeMaps) {
       return { top: flat, right: flat, bottom: flat, left: flat };
     }
     const top = row === 0 ? flat : Puzzle.invertEdge(edgeMaps.vertical[row][col]);
-    const bottom = row === GRID.rows - 1 ? flat : edgeMaps.vertical[row + 1][col];
+    const bottom = row === grid.rows - 1 ? flat : edgeMaps.vertical[row + 1][col];
     const left = col === 0 ? flat : Puzzle.invertEdge(edgeMaps.horizontal[row][col]);
-    const right = col === GRID.cols - 1 ? flat : edgeMaps.horizontal[row][col + 1];
+    const right = col === grid.cols - 1 ? flat : edgeMaps.horizontal[row][col + 1];
     return { top, right, bottom, left };
   };
 })();

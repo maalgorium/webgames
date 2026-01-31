@@ -31,8 +31,10 @@
   Puzzle.init = function init() {
     Puzzle.loadImages();
     Puzzle.loadCompleted();
+    Puzzle.loadPieceCount();
     Puzzle.buildGallery();
     Puzzle.bindControls();
+    Puzzle.bindPieceCountControl();
     Puzzle.initPreview();
     Puzzle.setupObservers();
     Puzzle.loadSelectedImage();

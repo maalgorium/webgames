@@ -28,4 +28,17 @@
   Puzzle.randRange = function randRange(min, max) {
     return min + Math.random() * (max - min);
   };
+
+  Puzzle.calculateGrid = function calculateGrid(pieceCount, aspectRatio) {
+    const ratio = aspectRatio || 1.5;
+
+    // Calculate ideal columns based on piece count and aspect ratio
+    // For a landscape image (ratio > 1), we want more columns than rows
+    // For a portrait image (ratio < 1), we want more rows than columns
+    // The formula: cols ≈ √(pieceCount * aspectRatio)
+    const cols = Math.round(Math.sqrt(pieceCount * ratio));
+    const rows = Math.round(pieceCount / cols);
+
+    return { cols, rows };
+  };
 })();

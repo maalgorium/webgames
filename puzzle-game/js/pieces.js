@@ -10,11 +10,11 @@
   };
 
   Puzzle.resetPieces = function resetPieces() {
-    const { GRID } = Puzzle.constants;
+    const { grid } = Puzzle.state;
     Puzzle.clearPieces();
     Puzzle.resetGroups();
-    Puzzle.state.edgeMaps = Puzzle.buildEdgeMaps(GRID.rows, GRID.cols);
-    Puzzle.state.pieces = Puzzle.buildPieces(GRID.rows, GRID.cols);
+    Puzzle.state.edgeMaps = Puzzle.buildEdgeMaps(grid.rows, grid.cols);
+    Puzzle.state.pieces = Puzzle.buildPieces(grid.rows, grid.cols);
     Puzzle.shufflePieces();
     Puzzle.updatePieceCount();
   };
