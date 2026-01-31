@@ -567,6 +567,7 @@
     if (!allLocked || !Puzzle.state.currentImage) {
       return;
     }
+    Puzzle.celebrate();
     Puzzle.state.completed.add(Puzzle.state.currentImage.id);
     Puzzle.saveCompleted();
     Puzzle.clearSelectedImage();
