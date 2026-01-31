@@ -37,7 +37,7 @@
     previewAction: null,
     previewHidden: false,
     galleryItems: new Map(),
-    trayCollapsed: false,
+    trayCollapsed: true,
     museumSearch: {
       query: "",
       results: [],

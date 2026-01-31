@@ -401,6 +401,7 @@
     outline.setAttribute("class", "piece-outline");
 
     svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("overflow", "visible");
     svg.appendChild(defs);
     svg.appendChild(image);
     svg.appendChild(outline);

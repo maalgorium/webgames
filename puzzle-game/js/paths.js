@@ -2,7 +2,7 @@
   const Puzzle = window.Puzzle || (window.Puzzle = {});
 
   function pointToString(point) {
-    return `${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+    return `${point.x.toFixed(4)},${point.y.toFixed(4)}`;
   }
 
   function edgePoint(startX, startY, dirX, dirY, normalX, normalY, along, offset) {
@@ -45,7 +45,7 @@
     const parts = [];
     let x = tab;
     let y = tab;
-    parts.push(`M ${x.toFixed(2)},${y.toFixed(2)}`);
+    parts.push(`M ${x.toFixed(4)},${y.toFixed(4)}`);
     const depthH = tab;
     const depthW = tab;
 
