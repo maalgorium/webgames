@@ -268,7 +268,7 @@ button.secondary:hover {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .gallery-grid {
@@ -411,6 +411,13 @@ button.secondary:hover {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+.museum-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .museum-search-input {
