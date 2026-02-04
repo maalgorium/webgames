@@ -42,6 +42,14 @@
     container.appendChild(results);
   };
 
+  /**
+   * Build the museum search interface
+   * @param {HTMLElement} container - Container element for search content
+   */
+  Puzzle.buildMuseumInterface = function buildMuseumInterface(container) {
+    Puzzle.buildSourceSearchInterface(container);
+  };
+
 /**
  * Handle source search form submission
  * @param {Event} event - Form submit event
