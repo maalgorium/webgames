@@ -112,10 +112,10 @@
     tabBar.className = "gallery-tabs";
 
     const localTab = Puzzle.createTabButton("local", "My Images", true);
-    const museumTab = Puzzle.createTabButton("museum", "Browse Museums", false);
+    const searchTab = Puzzle.createTabButton("search", "Search Sources", false);
 
     tabBar.appendChild(localTab);
-    tabBar.appendChild(museumTab);
+    tabBar.appendChild(searchTab);
     container.appendChild(tabBar);
 
     // Create tab content containers
@@ -123,18 +123,18 @@
     localContent.className = "gallery-tab-content active";
     localContent.dataset.tab = "local";
 
-    const museumContent = document.createElement("div");
-    museumContent.className = "gallery-tab-content";
-    museumContent.dataset.tab = "museum";
+    const searchContent = document.createElement("div");
+    searchContent.className = "gallery-tab-content";
+    searchContent.dataset.tab = "search";
 
     // Build local gallery (existing code)
     Puzzle.buildLocalGallery(localContent);
 
-    // Build museum interface
-    Puzzle.buildMuseumInterface(museumContent);
+    // Build search interface
+    Puzzle.buildSourceSearchInterface(searchContent);
 
     container.appendChild(localContent);
-    container.appendChild(museumContent);
+    container.appendChild(searchContent);
 
     Puzzle.updateGalleryStatus();
   };
@@ -200,7 +200,7 @@
     item.appendChild(label);
 
     // Add delete button for museum images
-    if (image.source === "met") {
+    if (image.source === "met" || image.source === "pixabay") {
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "gallery-delete";
       deleteBtn.innerHTML = "✕";

@@ -411,6 +411,7 @@ button.secondary:hover {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .museum-results {
@@ -428,6 +429,29 @@ button.secondary:hover {
   font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.6);
   transition: border-color 0.2s ease;
+}
+
+.source-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.source-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(31, 79, 95, 0.08);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--accent-2);
+  cursor: pointer;
+}
+
+.source-filter input {
+  accent-color: var(--accent);
 }
 
 .museum-search-input:focus {
@@ -453,6 +477,14 @@ button.secondary:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.museum-source-tag {
+  font-size: 0.7rem;
+  color: var(--accent-2);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .museum-loading {

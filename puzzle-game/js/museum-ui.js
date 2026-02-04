@@ -1,76 +1,134 @@
 /**
- * Museum Interface UI
- * Handles the Browse Museums tab interface, search, results, and preview modal
+ * Source Search Interface UI
+ * Handles searching and previewing results from multiple image sources
  */
 
 (() => {
   const Puzzle = window.Puzzle || (window.Puzzle = {});
 
   /**
-   * Build the museum search and browse interface
-   * @param {HTMLElement} container - Container element for museum content
+   * Build the source search interface
+   * @param {HTMLElement} container - Container element for search content
    */
-  Puzzle.buildMuseumInterface = function buildMuseumInterface(container) {
-  // Search bar
-  const searchForm = document.createElement("form");
-  searchForm.className = "museum-search";
-  searchForm.innerHTML = `
-    <input
-      type="text"
-      class="museum-search-input"
-      placeholder="Search artworks..."
-      aria-label="Search artworks"
-    >
-    <button type="submit" class="museum-search-button icon-button">🔍</button>
-  `;
-  searchForm.addEventListener("submit", Puzzle.handleMuseumSearch);
+  Puzzle.buildSourceSearchInterface = function buildSourceSearchInterface(container) {
+    const searchForm = document.createElement("form");
+    searchForm.className = "museum-search";
+    searchForm.innerHTML = `
+      <input
+        type="text"
+        class="museum-search-input"
+        placeholder="Search images..."
+        aria-label="Search images"
+      >
+      <button type="submit" class="museum-search-button icon-button">🔍</button>
+      <div class="source-filters" role="group" aria-label="Search sources">
+        <label class="source-filter">
+          <input type="checkbox" value="met" checked>
+          Met Museum
+        </label>
+        <label class="source-filter">
+          <input type="checkbox" value="pixabay" checked>
+          Pixabay
+        </label>
+      </div>
+    `;
+    searchForm.addEventListener("submit", Puzzle.handleSourceSearch);
 
-  // Results container
-  const results = document.createElement("div");
-  results.className = "museum-results";
-  results.id = "museum-results";
+    const results = document.createElement("div");
+    results.className = "museum-results";
+    results.id = "source-results";
 
-  container.appendChild(searchForm);
-  container.appendChild(results);
-};
+    container.appendChild(searchForm);
+    container.appendChild(results);
+  };
 
 /**
- * Handle museum search form submission
+ * Handle source search form submission
  * @param {Event} event - Form submit event
  */
-  Puzzle.handleMuseumSearch = async function handleMuseumSearch(event) {
-  event.preventDefault();
+  Puzzle.handleSourceSearch = async function handleSourceSearch(event) {
+    event.preventDefault();
 
-  const input = event.target.querySelector(".museum-search-input");
-  const query = input.value.trim();
+    const form = event.target;
+    const input = form.querySelector(".museum-search-input");
+    const query = input.value.trim();
 
-  if (!query) return;
+    if (!query) return;
 
-  const resultsContainer = document.getElementById("museum-results");
+    const selectedSources = Array.from(form.querySelectorAll(".source-filter input:checked"))
+      .map(inputEl => inputEl.value);
 
-  // Show loading state
-  Puzzle.showMuseumLoading(resultsContainer);
+    const resultsContainer = document.getElementById("source-results");
 
-  try {
-    const { results, total, hasMore } = await Puzzle.museumAPI.searchMetMuseum(query, 0, 20);
-
-    Puzzle.state.museumSearch = {
-      query,
-      results,
-      total,
-      hasMore,
-      offset: 20
-    };
-
-    Puzzle.renderMuseumResults(results, resultsContainer);
-
-    if (hasMore) {
-      Puzzle.addLoadMoreButton(resultsContainer);
+    if (selectedSources.length === 0) {
+      Puzzle.showMuseumError(resultsContainer, "Select at least one source to search.");
+      return;
     }
-  } catch (error) {
-    Puzzle.showMuseumError(resultsContainer, error.message || "Unable to search museums. Please check your connection and try again.");
-  }
-};
+
+    Puzzle.showMuseumLoading(resultsContainer);
+
+    try {
+      const sourceResults = await Puzzle.searchSelectedSources(query, selectedSources);
+
+      Puzzle.state.sourceSearch = {
+        ...Puzzle.state.sourceSearch,
+        query,
+        selectedSources,
+        results: sourceResults.combined,
+        met: sourceResults.met,
+        pixabay: sourceResults.pixabay
+      };
+
+      Puzzle.renderMuseumResults(sourceResults.combined, resultsContainer);
+
+      if (sourceResults.hasMore) {
+        Puzzle.addLoadMoreButton(resultsContainer);
+      }
+    } catch (error) {
+      Puzzle.showMuseumError(resultsContainer, error.message || "Unable to search sources. Please check your connection and try again.");
+    }
+  };
+
+  Puzzle.searchSelectedSources = async function searchSelectedSources(query, selectedSources) {
+    const tasks = [];
+    const results = { met: null, pixabay: null };
+
+    if (selectedSources.includes("met")) {
+      tasks.push(
+        Puzzle.museumAPI.searchMetMuseum(query, 0, 20).then((data) => {
+          results.met = {
+            ...data,
+            offset: 20
+          };
+        })
+      );
+    }
+
+    if (selectedSources.includes("pixabay")) {
+      tasks.push(
+        Puzzle.pixabayAPI.searchPixabay(query, 1, 20).then((data) => {
+          results.pixabay = {
+            ...data,
+            page: 1
+          };
+        })
+      );
+    }
+
+    await Promise.all(tasks);
+
+    const combined = [
+      ...(results.met?.results || []),
+      ...(results.pixabay?.results || [])
+    ];
+
+    return {
+      combined,
+      met: results.met || { results: [], total: 0, hasMore: false, offset: 0 },
+      pixabay: results.pixabay || { results: [], total: 0, hasMore: false, page: 1 },
+      hasMore: Boolean(results.met?.hasMore || results.pixabay?.hasMore)
+    };
+  };
 
 /**
  * Render museum search results
@@ -126,8 +184,13 @@
   artist.className = "museum-result-artist";
   artist.textContent = artwork.attribution.artist;
 
+  const sourceTag = document.createElement("div");
+  sourceTag.className = "museum-source-tag";
+  sourceTag.textContent = artwork.source === "pixabay" ? "Pixabay" : "Met Museum";
+
   info.appendChild(title);
   info.appendChild(artist);
+  info.appendChild(sourceTag);
   card.appendChild(thumb);
   card.appendChild(info);
 
@@ -196,7 +259,7 @@
           ` : ''}
         </div>
         <div class="museum-preview-license">
-          📜 ${artwork.attribution.institution} — ${artwork.attribution.license} Public Domain
+          📜 ${artwork.attribution.institution} — ${artwork.attribution.license}
         </div>
         <div class="museum-preview-actions">
           <button class="secondary" id="preview-cancel">Cancel</button>
@@ -287,8 +350,8 @@
    * Load more results (pagination)
    */
   Puzzle.loadMoreResults = async function loadMoreResults() {
-    const { query, offset, results } = Puzzle.state.museumSearch;
-    const container = document.getElementById("museum-results");
+    const { query, selectedSources } = Puzzle.state.sourceSearch;
+    const container = document.getElementById("source-results");
 
     // Show loading
     const loadMoreBtn = container.querySelector(".museum-load-more");
@@ -298,18 +361,48 @@
     }
 
     try {
-      const { results: newResults, hasMore } = await Puzzle.museumAPI.searchMetMuseum(query, offset, 20);
+      const nextMetOffset = Puzzle.state.sourceSearch.met.offset;
+      const nextPixabayPage = Puzzle.state.sourceSearch.pixabay.page + 1;
+      const tasks = [];
 
-      // Append to existing results
-      const updatedResults = [...results, ...newResults];
-      Puzzle.state.museumSearch.results = updatedResults;
-      Puzzle.state.museumSearch.offset = offset + 20;
-      Puzzle.state.museumSearch.hasMore = hasMore;
+      if (selectedSources.includes("met") && Puzzle.state.sourceSearch.met.hasMore) {
+        tasks.push(
+          Puzzle.museumAPI.searchMetMuseum(query, nextMetOffset, 20).then((data) => {
+            const existingResults = Puzzle.state.sourceSearch.met.results || [];
+            Puzzle.state.sourceSearch.met = {
+              ...data,
+              results: [...existingResults, ...data.results],
+              offset: nextMetOffset + 20
+            };
+          })
+        );
+      }
 
-      // Re-render with all results
+      if (selectedSources.includes("pixabay") && Puzzle.state.sourceSearch.pixabay.hasMore) {
+        tasks.push(
+          Puzzle.pixabayAPI.searchPixabay(query, nextPixabayPage, 20).then((data) => {
+            const existingResults = Puzzle.state.sourceSearch.pixabay.results || [];
+            Puzzle.state.sourceSearch.pixabay = {
+              ...data,
+              results: [...existingResults, ...data.results],
+              page: nextPixabayPage
+            };
+          })
+        );
+      }
+
+      await Promise.all(tasks);
+
+      const updatedResults = [
+        ...(Puzzle.state.sourceSearch.met.results || []),
+        ...(Puzzle.state.sourceSearch.pixabay.results || [])
+      ];
+
+      Puzzle.state.sourceSearch.results = updatedResults;
+
       Puzzle.renderMuseumResults(updatedResults, container);
 
-      if (hasMore) {
+      if (Puzzle.state.sourceSearch.met.hasMore || Puzzle.state.sourceSearch.pixabay.hasMore) {
         Puzzle.addLoadMoreButton(container);
       }
     } catch (error) {
