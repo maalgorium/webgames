@@ -112,10 +112,12 @@
     tabBar.className = "gallery-tabs";
 
     const localTab = Puzzle.createTabButton("local", "My Images", true);
-    const searchTab = Puzzle.createTabButton("search", "Search Sources", false);
+    const museumTab = Puzzle.createTabButton("museum", "Browse Museums", false);
+    const pixabayTab = Puzzle.createTabButton("pixabay", "Pixabay", false);
 
     tabBar.appendChild(localTab);
-    tabBar.appendChild(searchTab);
+    tabBar.appendChild(museumTab);
+    tabBar.appendChild(pixabayTab);
     container.appendChild(tabBar);
 
     // Create tab content containers
@@ -127,14 +129,20 @@
     searchContent.className = "gallery-tab-content";
     searchContent.dataset.tab = "search";
 
+    const pixabayContent = document.createElement("div");
+    pixabayContent.className = "gallery-tab-content";
+    pixabayContent.dataset.tab = "pixabay";
+
     // Build local gallery (existing code)
     Puzzle.buildLocalGallery(localContent);
 
-    // Build search interface
-    Puzzle.buildSourceSearchInterface(searchContent);
+    // Build museum interface
+    Puzzle.buildMuseumInterface(museumContent);
+    Puzzle.buildPixabayInterface(pixabayContent);
 
     container.appendChild(localContent);
-    container.appendChild(searchContent);
+    container.appendChild(museumContent);
+    container.appendChild(pixabayContent);
 
     Puzzle.updateGalleryStatus();
   };

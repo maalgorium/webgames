@@ -55,6 +55,13 @@
         page: 1
       }
     },
+    pixabaySearch: {
+      query: "",
+      results: [],
+      total: 0,
+      hasMore: false,
+      page: 1
+    },
     activeGalleryTab: "local",
     pieceCount: 150,
     grid: { cols: 15, rows: 10 }
