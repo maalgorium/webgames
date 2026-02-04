@@ -133,18 +133,34 @@
     pixabayContent.className = "gallery-tab-content";
     pixabayContent.dataset.tab = "pixabay";
 
-    // Build local gallery (existing code)
-    Puzzle.buildLocalGallery(localContent);
-
-    // Build museum interface
-    Puzzle.buildMuseumInterface(museumContent);
-    Puzzle.buildPixabayInterface(pixabayContent);
-
     container.appendChild(localContent);
     container.appendChild(museumContent);
     container.appendChild(pixabayContent);
 
+    // Build local gallery (existing code)
+    Puzzle.buildLocalGallery(localContent);
+
+    // Build museum interface
+    Puzzle.buildGalleryInterface(museumContent, "Browse Museums", Puzzle.buildMuseumInterface);
+    Puzzle.buildGalleryInterface(pixabayContent, "Pixabay", Puzzle.buildPixabayInterface);
+
+    Puzzle.switchTab(Puzzle.state.activeGalleryTab || "local");
     Puzzle.updateGalleryStatus();
+  };
+
+  Puzzle.buildGalleryInterface = function buildGalleryInterface(container, label, builder) {
+    if (typeof builder === "function") {
+      builder(container);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="museum-empty">
+        <div class="museum-empty-icon">🧩</div>
+        <div class="museum-empty-title">${label} is unavailable</div>
+        <div class="museum-empty-hint">Refresh the page or check your connection.</div>
+      </div>
+    `;
   };
 
   Puzzle.createTabButton = function createTabButton(tabName, label, isActive) {
