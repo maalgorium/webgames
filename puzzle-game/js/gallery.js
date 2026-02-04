@@ -125,9 +125,9 @@
     localContent.className = "gallery-tab-content active";
     localContent.dataset.tab = "local";
 
-    const museumContent = document.createElement("div");
-    museumContent.className = "gallery-tab-content";
-    museumContent.dataset.tab = "museum";
+    const searchContent = document.createElement("div");
+    searchContent.className = "gallery-tab-content";
+    searchContent.dataset.tab = "search";
 
     const pixabayContent = document.createElement("div");
     pixabayContent.className = "gallery-tab-content";

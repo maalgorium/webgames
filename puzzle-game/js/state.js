@@ -38,12 +38,22 @@
     previewHidden: false,
     galleryItems: new Map(),
     trayCollapsed: true,
-    museumSearch: {
+    sourceSearch: {
       query: "",
+      selectedSources: ["met", "pixabay"],
       results: [],
-      total: 0,
-      hasMore: false,
-      offset: 0
+      met: {
+        results: [],
+        total: 0,
+        hasMore: false,
+        offset: 0
+      },
+      pixabay: {
+        results: [],
+        total: 0,
+        hasMore: false,
+        page: 1
+      }
     },
     pixabaySearch: {
       query: "",
