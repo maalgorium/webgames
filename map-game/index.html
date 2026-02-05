@@ -47,8 +47,9 @@
         width: 100%;
         max-width: clamp(0px, 92vw, 1400px);
         margin: 0 auto;
-        padding: 32px 24px 64px;
-        display: grid;
+        padding: 32px 24px 24px;
+        display: flex;
+        flex-direction: column;
         gap: 28px;
         animation: fadeUp 0.7s ease both;
       }
@@ -150,6 +151,47 @@
 
       .status.warn {
         color: #a05f2c;
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+
+      .zoom-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .zoom-buttons button {
+        border: 1px solid rgba(27, 29, 31, 0.15);
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--ink);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-family: "Space Grotesk", "Arial", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+      }
+
+      .zoom-buttons button:hover {
+        background: rgba(255, 255, 255, 1);
+        border-color: var(--accent-2);
+      }
+
+      .zoom-buttons button:active {
+        transform: scale(0.97);
+      }
+
+      .zoom-buttons button[data-zoom="world"] {
+        background: var(--accent-2);
+        color: #fff;
+        border-color: var(--accent-2);
+      }
+
+      .zoom-buttons button[data-zoom="world"]:hover {
+        background: #4a6d99;
       }
 
       .map-panel {
@@ -157,10 +199,16 @@
         border-radius: 22px;
         padding: 20px;
         box-shadow: var(--shadow);
+        min-height: calc(100vh - 280px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       .map-frame {
-        min-height: 320px;
+        position: relative;
+        flex: 1;
+        min-height: 0;
       }
 
       .map-placeholder {
@@ -172,8 +220,10 @@
       }
 
       .map-panel svg {
+        position: absolute;
+        inset: 0;
         width: 100%;
-        height: auto;
+        height: 100%;
         display: block;
         animation: mapReveal 0.9s ease both;
       }
@@ -310,6 +360,15 @@
         <input id="guess" type="text" autocomplete="off" placeholder="Start typing a country..." />
         <div class="hint">Examples: Japan, Cote d'Ivoire, United States</div>
         <div class="status" id="status"></div>
+        <div class="zoom-buttons">
+          <button type="button" data-zoom="world">World</button>
+          <button type="button" data-zoom="North America">N. America</button>
+          <button type="button" data-zoom="South America">S. America</button>
+          <button type="button" data-zoom="Europe">Europe</button>
+          <button type="button" data-zoom="Africa">Africa</button>
+          <button type="button" data-zoom="Asia">Asia</button>
+          <button type="button" data-zoom="Oceania">Oceania</button>
+        </div>
       </section>
 
             <section class="map-panel">
@@ -382,6 +441,7 @@
           "Iceland",
           "Ireland",
           "Italy",
+          "Kosovo",
           "Latvia",
           "Liechtenstein",
           "Lithuania",
@@ -505,6 +565,7 @@
           "Sri Lanka",
           "Syria",
           "Tajikistan",
+          "Taiwan",
           "Thailand",
           "Timor-Leste",
           "Turkey",
@@ -561,6 +622,15 @@
         "lao": "Laos"
       };
 
+      // Territories that should be highlighted when parent country is found
+      // Maps country name to SVG title(s) of territories
+      const COUNTRY_TERRITORIES = {
+        "Morocco": ["Western Sahara"],
+        "Denmark": ["Greenland"],
+        "France": ["French Guiana"],
+        "Norway": ["Svalbard and Jan Mayen"]
+      };
+
       const SVG_NAME_OVERRIDES = {
         "Cabo Verde": "Cape Verde",
         "Czechia": "Czech Republic",
@@ -582,7 +652,10 @@
         registry: new Map(),
         nameIndex: new Map(),
         tileNodes: new Map(),
+        territoryNodes: new Map(), // Maps country slug to array of territory SVG elements
         listNodes: new Map(),
+        continentBounds: new Map(), // Maps continent name to {x, y, width, height}
+        originalViewBox: null,
         total: 0
       };
 
@@ -710,6 +783,7 @@
       function mapCountriesToSvg(svgIndex) {
         const missing = [];
         state.tileNodes.clear();
+        state.territoryNodes.clear();
         state.registry.forEach(({ name }, slug) => {
           const svgName = resolveSvgName(name);
           const key = normalizeInput(svgName);
@@ -720,6 +794,21 @@
           }
           path.dataset.country = slug;
           state.tileNodes.set(slug, path);
+
+          // Map territories to parent country
+          const territories = COUNTRY_TERRITORIES[name];
+          if (territories) {
+            const territoryPaths = [];
+            territories.forEach((territoryName) => {
+              const territoryPath = svgIndex.get(normalizeInput(territoryName));
+              if (territoryPath) {
+                territoryPaths.push(territoryPath);
+              }
+            });
+            if (territoryPaths.length) {
+              state.territoryNodes.set(slug, territoryPaths);
+            }
+          }
         });
         if (missing.length) {
           console.warn("Missing countries in SVG:", missing);
@@ -736,10 +825,122 @@
         }
         const box = group.getBBox();
         const padding = 18;
-        elements.map.setAttribute(
-          "viewBox",
-          `${box.x - padding} ${box.y - padding} ${box.width + padding * 2} ${box.height + padding * 2}`
-        );
+        state.originalViewBox = `${box.x - padding} ${box.y - padding} ${box.width + padding * 2} ${box.height + padding * 2}`;
+        const bounds = {
+          x: box.x - padding,
+          y: box.y - padding,
+          width: box.width + padding * 2,
+          height: box.height + padding * 2
+        };
+        const viewBox = fitBoundsToContainer(bounds);
+        elements.map.setAttribute("viewBox", viewBox);
+      }
+
+      // Countries to exclude from zoom bounds calculation (e.g., Russia spans Europe and Asia)
+      const ZOOM_EXCLUSIONS = {
+        "Europe": ["Russia"],
+        "North America": ["Canada"]
+      };
+
+      function calculateContinentBounds() {
+        state.continentBounds.clear();
+        Object.entries(CONTINENT_COUNTRIES).forEach(([continent, countries]) => {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          let hasAnyPath = false;
+          const exclusions = ZOOM_EXCLUSIONS[continent] || [];
+
+          countries.forEach((name) => {
+            if (exclusions.includes(name)) return;
+            const slug = slugify(name);
+            const path = state.tileNodes.get(slug);
+            if (!path) return;
+            hasAnyPath = true;
+            const bbox = path.getBBox();
+            minX = Math.min(minX, bbox.x);
+            minY = Math.min(minY, bbox.y);
+            maxX = Math.max(maxX, bbox.x + bbox.width);
+            maxY = Math.max(maxY, bbox.y + bbox.height);
+          });
+
+          if (hasAnyPath) {
+            const padding = 30;
+            state.continentBounds.set(continent, {
+              x: minX - padding,
+              y: minY - padding,
+              width: maxX - minX + padding * 2,
+              height: maxY - minY + padding * 2
+            });
+          }
+        });
+      }
+
+      function zoomToContinent(continent) {
+        if (!elements.map) return;
+        const bounds = state.continentBounds.get(continent);
+        if (!bounds) return;
+        const viewBox = fitBoundsToContainer(bounds);
+        animateViewBox(viewBox);
+      }
+
+      function fitBoundsToContainer(bounds) {
+        const container = elements.mapContainer;
+        if (!container) return `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`;
+
+        const containerRect = container.getBoundingClientRect();
+        const containerAspect = containerRect.width / containerRect.height;
+        const boundsAspect = bounds.width / bounds.height;
+
+        let viewWidth = bounds.width;
+        let viewHeight = bounds.height;
+        let viewX = bounds.x;
+        let viewY = bounds.y;
+
+        if (containerAspect > boundsAspect) {
+          // Container is wider than bounds - expand width
+          viewWidth = bounds.height * containerAspect;
+          viewX = bounds.x - (viewWidth - bounds.width) / 2;
+        } else {
+          // Container is taller than bounds - expand height
+          viewHeight = bounds.width / containerAspect;
+          viewY = bounds.y - (viewHeight - bounds.height) / 2;
+        }
+
+        return `${viewX} ${viewY} ${viewWidth} ${viewHeight}`;
+      }
+
+      function zoomToFullMap() {
+        if (!elements.map || !state.originalViewBox) return;
+        const parts = state.originalViewBox.split(" ").map(Number);
+        const bounds = { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+        const viewBox = fitBoundsToContainer(bounds);
+        animateViewBox(viewBox);
+      }
+
+      function animateViewBox(targetViewBox) {
+        if (!elements.map) return;
+        const current = elements.map.getAttribute("viewBox").split(" ").map(Number);
+        const target = targetViewBox.split(" ").map(Number);
+        const duration = 400;
+        const startTime = performance.now();
+
+        function easeOutCubic(t) {
+          return 1 - Math.pow(1 - t, 3);
+        }
+
+        function step(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = easeOutCubic(progress);
+
+          const interpolated = current.map((start, i) => start + (target[i] - start) * eased);
+          elements.map.setAttribute("viewBox", interpolated.join(" "));
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          }
+        }
+
+        requestAnimationFrame(step);
       }
 
       function configureMap() {
@@ -749,6 +950,7 @@
         const svgIndex = buildSvgIndex();
         mapCountriesToSvg(svgIndex);
         setMapViewBox();
+        calculateContinentBounds();
       }
 
       function buildLists() {
@@ -816,15 +1018,11 @@
       function setStatus(message, variant) {
         elements.status.textContent = message;
         elements.status.className = variant ? `status ${variant}` : "status";
-        if (!message) {
-          return;
-        }
-        setTimeout(() => {
-          if (elements.status.textContent === message) {
-            elements.status.textContent = "";
-            elements.status.className = "status";
-          }
-        }, 1800);
+      }
+
+      function clearStatus() {
+        elements.status.textContent = "";
+        elements.status.className = "status";
       }
 
       function markFound(slug) {
@@ -837,11 +1035,20 @@
         if (tile) {
           tile.classList.add("found");
         }
+        // Also highlight any territories belonging to this country
+        const territories = state.territoryNodes.get(slug);
+        if (territories) {
+          territories.forEach((territoryTile) => {
+            territoryTile.classList.add("found");
+          });
+        }
         const listItem = state.listNodes.get(slug);
         if (listItem) {
           listItem.textContent = entry.name;
           listItem.classList.add("found");
         }
+        // Zoom to the continent
+        zoomToContinent(entry.continent);
       }
 
       function resolveGuess(raw) {
@@ -892,15 +1099,22 @@
         state.tileNodes.forEach((tile) => {
           tile.classList.remove("found");
         });
+        state.territoryNodes.forEach((territories) => {
+          territories.forEach((tile) => {
+            tile.classList.remove("found");
+          });
+        });
         state.listNodes.forEach((item) => {
           item.textContent = "-";
           item.classList.remove("found");
         });
 
         updateProgress();
+        zoomToFullMap();
       }
 
       function handleInput() {
+        clearStatus();
         if (!state.timerId && elements.input.value.trim()) {
           startTimer();
         }
@@ -935,6 +1149,17 @@
         elements.input.addEventListener("input", handleInput);
         elements.input.addEventListener("keydown", handleKeydown);
         elements.reset.addEventListener("click", resetGame);
+
+        document.querySelector(".zoom-buttons").addEventListener("click", (e) => {
+          const btn = e.target.closest("button[data-zoom]");
+          if (!btn) return;
+          const zone = btn.dataset.zoom;
+          if (zone === "world") {
+            zoomToFullMap();
+          } else {
+            zoomToContinent(zone);
+          }
+        });
       }
 
       init();
