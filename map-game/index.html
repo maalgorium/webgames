@@ -348,7 +348,7 @@
         <div class="input-header">
           <div class="title-block">
             <h1>Map Game</h1>
-            <p>Type a country and press Enter to claim it on the map.</p>
+            <p>Type a country name to claim it on the map.</p>
           </div>
           <div class="stats">
             <div class="timer" id="timer">00:00</div>
@@ -1115,8 +1115,24 @@
 
       function handleInput() {
         clearStatus();
-        if (!state.timerId && elements.input.value.trim()) {
+        const value = elements.input.value.trim();
+        if (!value) return;
+
+        if (!state.timerId) {
           startTimer();
+        }
+
+        // Check for automatic match
+        const slug = resolveGuess(value);
+        if (slug && !state.found.has(slug)) {
+          markFound(slug);
+          elements.input.value = "";
+          updateProgress();
+
+          if (state.found.size === state.total) {
+            stopTimer();
+            setStatus("All countries found!", "");
+          }
         }
       }
 
