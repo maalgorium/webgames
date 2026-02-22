@@ -11,6 +11,7 @@ const state = {
   timerId: null,
   pausedElapsed: 0,      // Total seconds accumulated before the current segment
   paused: false,
+  winModalTimeout: null, // ID of pending win-modal setTimeout
   registry: new Map(),   // slug → { name, continent }
   nameIndex: new Map(),  // normalized input → slug
   tileNodes: new Map(),  // slug → SVG path element
@@ -416,12 +417,27 @@ function submitGuess(value) {
 }
 
 function onGameComplete() {
+  const finalSeconds = getElapsedSeconds(); // capture before stopTimer clears startTime
   stopTimer();
   setStatus("All countries found! 🎉", "");
-  setTimeout(() => showWinModal(), 600);
+  state.winModalTimeout = setTimeout(() => {
+    state.winModalTimeout = null;
+    showWinModal(finalSeconds);
+  }, 600);
 }
 
 function resetGame() {
+  // Cancel pending win modal and close it if already open
+  if (state.winModalTimeout) {
+    clearTimeout(state.winModalTimeout);
+    state.winModalTimeout = null;
+  }
+  const modalOverlay = document.getElementById("modal-overlay");
+  if (modalOverlay && modalOverlay.classList.contains("active")) {
+    modalOverlay.classList.remove("active");
+    modalOverlay.setAttribute("aria-hidden", "true");
+  }
+
   state.found.clear();
   stopTimer();
   state.startTime = null;
@@ -448,7 +464,7 @@ function resetGame() {
 
 // ─── Win Modal ───────────────────────────────────────────────────────────────
 
-function showWinModal() {
+function showWinModal(finalSeconds) {
   const overlay = document.getElementById("modal-overlay");
   const timeEl = document.getElementById("modal-time");
   const nameInput = document.getElementById("player-name");
@@ -456,7 +472,7 @@ function showWinModal() {
   const skipBtn = document.getElementById("modal-skip");
   if (!overlay) return;
 
-  timeEl.textContent = `Time: ${elements.timer.textContent}`;
+  timeEl.textContent = `Time: ${formatTime(finalSeconds)}`;
   nameInput.value = "";
   overlay.classList.add("active");
   overlay.setAttribute("aria-hidden", "false");
@@ -475,7 +491,7 @@ function showWinModal() {
       name,
       countries: state.found.size,
       total: state.total,
-      seconds: getElapsedSeconds()
+      seconds: finalSeconds  // use captured value, not re-computed
     });
     close();
   }
