@@ -23,6 +23,7 @@
     pieces: [],
     edgeMaps: null,
     boardRect: null,
+    boardZoneRect: null,
     trayRect: null,
     pieceSize: { width: 0, height: 0 },
     pieceOuter: { width: 0, height: 0, tab: 0 },

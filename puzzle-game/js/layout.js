@@ -31,6 +31,7 @@
 
   Puzzle.updateRects = function updateRects() {
     Puzzle.state.boardRect = Puzzle.getRelativeRect(Puzzle.elements.board, Puzzle.elements.playArea);
+    Puzzle.state.boardZoneRect = Puzzle.getRelativeRect(Puzzle.elements.boardZone, Puzzle.elements.playArea);
     Puzzle.state.trayRect = Puzzle.getRelativeRect(Puzzle.elements.traySurface, Puzzle.elements.playArea);
   };
 

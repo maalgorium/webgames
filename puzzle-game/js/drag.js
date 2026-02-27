@@ -146,6 +146,14 @@
     });
   };
 
+  Puzzle.isInBoardZoneArea = function isInBoardZoneArea(center) {
+    const { boardZoneRect } = Puzzle.state;
+    if (!boardZoneRect) {
+      return false;
+    }
+    return center.y < boardZoneRect.y + boardZoneRect.height + 20;
+  };
+
   Puzzle.finishSingleDrop = function finishSingleDrop(piece) {
     const snapped = Puzzle.trySnapPiece(piece);
     if (snapped) {
@@ -157,6 +165,11 @@
       if (!Puzzle.trySnapGroupToNeighbor([piece])) {
         Puzzle.keepPieceOnBoard(piece);
       }
+      return;
+    }
+    // Keep piece floating in side area; only tray it when dropped below the board zone
+    if (Puzzle.isInBoardZoneArea(center)) {
+      Puzzle.keepPieceOnBoard(piece);
       return;
     }
     Puzzle.placePieceInTray(piece);
@@ -173,6 +186,11 @@
       if (!Puzzle.trySnapGroupToNeighbor(pieces)) {
         Puzzle.keepPiecesOnBoard(pieces);
       }
+      return;
+    }
+    // Keep group floating in side area; only tray it when dropped below the board zone
+    if (Puzzle.isInBoardZoneArea(center)) {
+      Puzzle.keepPiecesOnBoard(pieces);
       return;
     }
     Puzzle.sendGroupToTray(pieces);

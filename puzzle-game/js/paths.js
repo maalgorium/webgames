@@ -19,30 +19,31 @@
       return end;
     }
 
-    const tabWidth = length * 0.56 * edge.size;
+    // Traditional jigsaw shape: circular head on a narrow neck
+    const sign = edge.sign;
     const mid = length / 2;
-    const startTab = mid - tabWidth / 2;
-    const endTab = mid + tabWidth / 2;
-    const depth = depthBase * 1.05 * edge.depth * edge.sign;
-    const handle = tabWidth * 0.2;
-    const bulb = tabWidth * 0.16;
-    const crownHandle = tabWidth * 0.12;
+    const totalDepth = depthBase * edge.depth * sign;
+    const headR = Math.abs(totalDepth) * 0.56;
+    const headCV = totalDepth - sign * headR;   // circle center offset along normal
+    const neckHalf = length * 0.10 * edge.size; // half-width of neck at edge base
+    const k = 0.552;                            // bezier circle approximation constant
 
-    const p1 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, startTab, 0);
-    const cp1 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, startTab + handle, 0);
-    const cp2 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid - bulb - handle, depth);
-    const p2 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid - bulb, depth);
-    const cp3 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid - bulb + crownHandle, depth);
-    const cp4 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid + bulb - crownHandle, depth);
-    const p3 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid + bulb, depth);
-    const cp5 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, mid + bulb + handle, depth);
-    const cp6 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, endTab - handle, 0);
-    const p4 = edgePoint(startX, startY, dirX, dirY, normalX, normalY, endTab, 0);
+    function pt(u, v) {
+      return pointToString(edgePoint(startX, startY, dirX, dirY, normalX, normalY, u, v));
+    }
 
-    parts.push(`L ${pointToString(p1)}`);
-    parts.push(`C ${pointToString(cp1)} ${pointToString(cp2)} ${pointToString(p2)}`);
-    parts.push(`C ${pointToString(cp3)} ${pointToString(cp4)} ${pointToString(p3)}`);
-    parts.push(`C ${pointToString(cp5)} ${pointToString(cp6)} ${pointToString(p4)}`);
+    const startTab = mid - neckHalf;
+    const endTab = mid + neckHalf;
+
+    // Left shoulder: from (startTab, 0) curving up to left of circle
+    parts.push(`L ${pt(startTab, 0)}`);
+    parts.push(`C ${pt(startTab, headCV * 0.5)} ${pt(mid - headR, headCV - sign * headR * 0.5)} ${pt(mid - headR, headCV)}`);
+    // Left quarter arc of circle
+    parts.push(`C ${pt(mid - headR, headCV + sign * headR * k)} ${pt(mid - headR * k, headCV + sign * headR)} ${pt(mid, headCV + sign * headR)}`);
+    // Right quarter arc of circle
+    parts.push(`C ${pt(mid + headR * k, headCV + sign * headR)} ${pt(mid + headR, headCV + sign * headR * k)} ${pt(mid + headR, headCV)}`);
+    // Right shoulder: from right of circle back down to (endTab, 0)
+    parts.push(`C ${pt(mid + headR, headCV - sign * headR * 0.5)} ${pt(endTab, headCV * 0.5)} ${pt(endTab, 0)}`);
     parts.push(`L ${pointToString(end)}`);
     return end;
   }
