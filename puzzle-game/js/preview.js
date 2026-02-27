@@ -15,8 +15,7 @@
   };
 
   Puzzle.applyPreviewRect = function applyPreviewRect() {
-    const maxWidth = Math.min(window.innerWidth - 32, 420);
-    Puzzle.state.preview.width = Puzzle.clamp(Puzzle.state.preview.width, 120, maxWidth);
+    Puzzle.state.preview.width = Math.max(120, Puzzle.state.preview.width);
     Puzzle.elements.preview.style.width = `${Puzzle.state.preview.width}px`;
     Puzzle.elements.preview.style.left = `${Puzzle.state.preview.x}px`;
     Puzzle.elements.preview.style.top = `${Puzzle.state.preview.y}px`;

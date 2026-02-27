@@ -8,7 +8,6 @@
   --card: rgba(16, 23, 33, 0.92);
   --line: rgba(106, 166, 199, 0.25);
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --piece-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -767,11 +766,11 @@ button.secondary:hover {
   border-radius: 0;
   border: none;
   background: transparent;
-  box-shadow: var(--piece-shadow);
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
   cursor: grab;
   touch-action: none;
   user-select: none;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 .piece svg {
@@ -814,7 +813,7 @@ button.secondary:hover {
 }
 
 .piece.locked {
-  box-shadow: none;
+  filter: none;
   cursor: default;
 }
 
