@@ -24,7 +24,7 @@ const CONTINENT_COUNTRIES = {
     "Saint Lucia",
     "Saint Vincent and the Grenadines",
     "Trinidad and Tobago",
-    "United States of America"
+    "USA"
   ],
   "South America": [
     "Argentina",
@@ -57,7 +57,6 @@ const CONTINENT_COUNTRIES = {
     "Germany",
     "Greece",
     "Hungary",
-    "Iceland",
     "Ireland",
     "Italy",
     "Kosovo",
@@ -83,9 +82,12 @@ const CONTINENT_COUNTRIES = {
     "Spain",
     "Sweden",
     "Switzerland",
+    "Turkey",
     "Ukraine",
     "United Kingdom",
-    "Vatican City"
+    "Vatican City",
+    "Cyprus",
+    "Iceland"
   ],
   Africa: [
     "Algeria",
@@ -153,7 +155,6 @@ const CONTINENT_COUNTRIES = {
     "Brunei",
     "Cambodia",
     "China",
-    "Cyprus",
     "Georgia",
     "India",
     "Indonesia",
@@ -187,7 +188,6 @@ const CONTINENT_COUNTRIES = {
     "Taiwan",
     "Thailand",
     "Timor-Leste",
-    "Turkey",
     "Turkmenistan",
     "United Arab Emirates",
     "Uzbekistan",
@@ -213,9 +213,9 @@ const CONTINENT_COUNTRIES = {
 };
 
 const COUNTRY_ALIASES = {
-  "usa": "United States of America",
-  "united states": "United States of America",
-  "us": "United States of America",
+  "united states of america": "USA",
+  "united states": "USA",
+  "usa": "USA",
   "uk": "United Kingdom",
   "britain": "United Kingdom",
   "czech republic": "Czechia",
@@ -237,8 +237,7 @@ const COUNTRY_ALIASES = {
   "north macedonia": "North Macedonia",
   "south korea": "South Korea",
   "north korea": "North Korea",
-  "syria": "Syria",
-  "lao": "Laos"
+  "syria": "Syria"
 };
 
 // Territories that are highlighted when the parent country is found
@@ -259,5 +258,5 @@ const SVG_NAME_OVERRIDES = {
   "North Macedonia": "Macedonia",
   "Palestine": "Palestinian Territories",
   "Republic of the Congo": "Republic of Congo",
-  "United States of America": "United States"
+  "USA": "United States"
 };

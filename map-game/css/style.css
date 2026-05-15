@@ -45,10 +45,10 @@ body::before {
   width: 100%;
   max-width: clamp(0px, 92vw, 1400px);
   margin: 0 auto;
-  padding: 32px 24px 24px;
+  padding: 20px 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 14px;
   animation: fadeUp 0.7s ease both;
 }
 
@@ -71,11 +71,11 @@ body::before {
 
 .input-panel {
   background: var(--card);
-  border-radius: 18px;
-  padding: 18px 22px;
+  border-radius: 14px;
+  padding: 14px 18px 8px;
   box-shadow: var(--shadow);
   display: grid;
-  gap: 10px;
+  gap: 8px;
   font-family: "Space Grotesk", "Arial", sans-serif;
 }
 
@@ -146,7 +146,7 @@ label {
 
 input[type="text"] {
   width: 100%;
-  padding: 14px 16px;
+  padding: 11px 14px;
   border-radius: 12px;
   border: 1px solid rgba(27, 29, 31, 0.15);
   background: rgba(255, 255, 255, 0.9);
@@ -172,9 +172,13 @@ input[type="text"]:disabled {
 /* ─── Status ─────────────────────────────────────────────────────────────── */
 
 .status {
-  min-height: 1.2rem;
+  min-height: 0;
   font-size: 0.9rem;
   color: var(--accent-2);
+}
+
+.status:not(:empty) {
+  min-height: 1rem;
 }
 
 .status.warn {
@@ -186,7 +190,7 @@ input[type="text"]:disabled {
 /* ─── Gold Star ──────────────────────────────────────────────────────────── */
 
 .star-container {
-  height: 36px;
+  height: 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -211,10 +215,13 @@ input[type="text"]:disabled {
 /* ─── Zoom Buttons ───────────────────────────────────────────────────────── */
 
 .zoom-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  max-width: min(170px, 38%);
 }
 
 .zoom-buttons button {
@@ -235,18 +242,14 @@ input[type="text"]:disabled {
   border-color: var(--accent-2);
 }
 
-.zoom-buttons button:active {
-  transform: scale(0.97);
-}
-
-.zoom-buttons button[data-zoom="world"] {
+.zoom-buttons button.active {
   background: var(--accent-2);
   color: #fff;
   border-color: var(--accent-2);
 }
 
-.zoom-buttons button[data-zoom="world"]:hover {
-  background: #4a6d99;
+.zoom-buttons button:active {
+  transform: scale(0.97);
 }
 
 /* ─── Map Panel ──────────────────────────────────────────────────────────── */
@@ -254,9 +257,9 @@ input[type="text"]:disabled {
 .map-panel {
   background: var(--card);
   border-radius: 22px;
-  padding: 20px;
+  padding: 14px;
   box-shadow: var(--shadow);
-  min-height: calc(100vh - 280px);
+  min-height: calc(100vh - 220px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -276,13 +279,58 @@ input[type="text"]:disabled {
   padding: 24px 0;
 }
 
-.map-panel svg {
+.map-svg-loader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-frame > svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   animation: mapReveal 0.9s ease both;
+}
+
+.map-inset {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 2;
+  width: min(170px, 26%);
+  aspect-ratio: 1.35;
+  border: 1px solid rgba(27, 29, 31, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 24px rgba(20, 30, 40, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.map-inset.active {
+  opacity: 1;
+}
+
+.map-inset::after {
+  content: "Iceland";
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-family: "Space Grotesk", "Arial", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.map-inset svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .map-panel svg .land {
@@ -546,6 +594,20 @@ input[type="text"]:disabled {
 
   .stats {
     justify-content: start;
+  }
+
+  .zoom-buttons {
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    max-width: none;
+  }
+
+  .zoom-buttons button {
+    padding: 5px 9px;
   }
 }
 

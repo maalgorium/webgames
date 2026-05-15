@@ -26,24 +26,26 @@
 
         <label for="guess">Country name</label>
         <input id="guess" type="text" autocomplete="off" placeholder="Start typing a country..." />
-        <div class="hint">Examples: Japan, Cote d'Ivoire, United States</div>
+        <div class="hint">Examples: Japan, Cote d'Ivoire, USA</div>
         <div class="status" id="status"></div>
         <div class="star-container" id="star-container"></div>
-
-        <div class="zoom-buttons">
-          <button type="button" data-zoom="world">World</button>
-          <button type="button" data-zoom="North America">N. America</button>
-          <button type="button" data-zoom="South America">S. America</button>
-          <button type="button" data-zoom="Europe">Europe</button>
-          <button type="button" data-zoom="Africa">Africa</button>
-          <button type="button" data-zoom="Asia">Asia</button>
-          <button type="button" data-zoom="Oceania">Oceania</button>
-        </div>
       </section>
 
       <!-- ── Map Panel ────────────────────────────────────────────────────── -->
       <section class="map-panel">
         <div class="map-frame" id="map-container">
+          <div class="zoom-buttons" aria-label="Map zoom controls">
+            <button type="button" data-zoom="world">World</button>
+            <button type="button" data-zoom="North America">N. America</button>
+            <button type="button" data-zoom="Caribbean and Central America">Caribbean / C. America</button>
+            <button type="button" data-zoom="South America">S. America</button>
+            <button type="button" data-zoom="Europe">Europe</button>
+            <button type="button" data-zoom="Middle East">Middle East</button>
+            <button type="button" data-zoom="Africa">Africa</button>
+            <button type="button" data-zoom="Asia">Asia</button>
+            <button type="button" data-zoom="Oceania">Oceania</button>
+          </div>
+          <div class="map-inset" id="iceland-inset" aria-hidden="true"></div>
           <div class="map-placeholder" id="map-placeholder">Loading map...</div>
         </div>
       </section>
@@ -88,6 +90,7 @@
     </div>
 
     <script src="js/data.js"></script>
+    <script src="js/map-svg.js"></script>
     <script src="js/leaderboard.js"></script>
     <script src="js/game.js"></script>
   </body>

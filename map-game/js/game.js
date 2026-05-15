@@ -17,7 +17,7 @@ const state = {
   tileNodes: new Map(),  // slug → SVG path element
   territoryNodes: new Map(), // slug → [SVG path elements]
   listNodes: new Map(),  // slug → <li> element
-  continentBounds: new Map(), // continent → { x, y, width, height }
+  zoomBounds: new Map(), // zoom region → { x, y, width, height }
   originalViewBox: null,
   total: 0
 };
@@ -33,6 +33,7 @@ const elements = {
   pause: document.getElementById("pause"),
   mapContainer: document.getElementById("map-container"),
   mapPlaceholder: document.getElementById("map-placeholder"),
+  icelandInset: document.getElementById("iceland-inset"),
   map: null,
   lists: document.getElementById("lists"),
   starContainer: document.getElementById("star-container")
@@ -94,6 +95,10 @@ function parseSvgText(svgText) {
   const doc = parser.parseFromString(svgText, "image/svg+xml");
   const svg = doc.querySelector("svg");
   if (!svg) return null;
+  return prepareMapSvg(svg);
+}
+
+function prepareMapSvg(svg) {
   svg.setAttribute("id", "map");
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", "World map");
@@ -103,20 +108,87 @@ function parseSvgText(svgText) {
   return svg;
 }
 
+function mountMapSvg(svg) {
+  if (elements.map) elements.map.remove();
+  if (elements.mapPlaceholder) {
+    elements.mapPlaceholder.replaceWith(svg);
+    elements.mapPlaceholder = null;
+  } else {
+    elements.mapContainer.appendChild(svg);
+  }
+  elements.map = svg;
+}
+
+async function loadMapSvgWithFetch() {
+  const response = await fetch(MAP_SVG_PATH, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Map load failed: ${response.status}`);
+  const svg = parseSvgText(await response.text());
+  if (!svg) throw new Error("Map SVG missing <svg> root.");
+  mountMapSvg(svg);
+}
+
+function loadMapSvgWithInlineText() {
+  if (typeof MAP_SVG_TEXT === "undefined") {
+    throw new Error("Inline map SVG text is unavailable.");
+  }
+  const svg = parseSvgText(MAP_SVG_TEXT);
+  if (!svg) throw new Error("Map SVG missing <svg> root.");
+  mountMapSvg(svg);
+}
+
+function loadMapSvgWithObject() {
+  return new Promise((resolve, reject) => {
+    const objectEl = document.createElement("object");
+    objectEl.type = "image/svg+xml";
+    objectEl.data = MAP_SVG_PATH;
+    objectEl.className = "map-svg-loader";
+    objectEl.setAttribute("aria-hidden", "true");
+
+    objectEl.addEventListener("load", () => {
+      const svg = objectEl.contentDocument && objectEl.contentDocument.querySelector("svg");
+      if (!svg) {
+        objectEl.remove();
+        reject(new Error("Map SVG missing <svg> root."));
+        return;
+      }
+      mountMapSvg(prepareMapSvg(document.importNode(svg, true)));
+      objectEl.remove();
+      resolve();
+    }, { once: true });
+
+    objectEl.addEventListener("error", () => {
+      objectEl.remove();
+      reject(new Error("Map object load failed."));
+    }, { once: true });
+
+    elements.mapContainer.appendChild(objectEl);
+  });
+}
+
 async function loadMapSvg() {
   if (!elements.mapContainer) return false;
   try {
-    const response = await fetch(MAP_SVG_PATH, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Map load failed: ${response.status}`);
-    const svgText = await response.text();
-    const svg = parseSvgText(svgText);
-    if (!svg) throw new Error("Map SVG missing <svg> root.");
-    elements.mapContainer.replaceChildren(svg);
-    elements.map = svg;
+    if (window.location.protocol === "file:") {
+      loadMapSvgWithInlineText();
+    } else {
+      await loadMapSvgWithFetch();
+    }
     return true;
-  } catch (error) {
-    console.warn(error);
-    showMapMessage("Map failed to load. Use a local server if opened from file.");
+  } catch (primaryError) {
+    console.warn(primaryError);
+    try {
+      loadMapSvgWithInlineText();
+      return true;
+    } catch (inlineError) {
+      console.warn(inlineError);
+      try {
+        await loadMapSvgWithObject();
+        return true;
+      } catch (objectError) {
+        console.warn(objectError);
+        showMapMessage("Map failed to load.");
+      }
+    }
     return false;
   }
 }
@@ -172,6 +244,68 @@ function fitBoundsToContainer(bounds) {
   return `${vx} ${vy} ${vw} ${vh}`;
 }
 
+/**
+ * Returns the combined SVG bounds for a set of registered country names.
+ */
+function getCountryBounds(countryNames) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let hasAny = false;
+  countryNames.forEach((name) => {
+    const path = state.tileNodes.get(slugify(name));
+    if (!path) return;
+    hasAny = true;
+    const b = path.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  });
+  if (!hasAny) return null;
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/**
+ * Expands SVG bounds by a fixed amount in every direction.
+ */
+function padBounds(bounds, pad) {
+  return {
+    x: bounds.x - pad,
+    y: bounds.y - pad,
+    width: bounds.width + pad * 2,
+    height: bounds.height + pad * 2
+  };
+}
+
+/**
+ * Applies region-specific cropping, zoom, and pan adjustments to SVG bounds.
+ */
+function tuneBounds(bounds, options = {}) {
+  const cropTop = options.cropTop || 0;
+  const scale = options.scale || 1;
+  const xOffset = options.xOffset || 0;
+  const yOffset = options.yOffset || 0;
+  let tuned = { ...bounds };
+  if (cropTop > 0) {
+    const cropped = tuned.height * cropTop;
+    tuned = { ...tuned, y: tuned.y + cropped, height: tuned.height - cropped };
+  }
+  if (scale !== 1) {
+    const width = tuned.width * scale;
+    const height = tuned.height * scale;
+    tuned = {
+      x: tuned.x + (tuned.width - width) / 2,
+      y: tuned.y + (tuned.height - height) / 2,
+      width,
+      height
+    };
+  }
+  return {
+    ...tuned,
+    x: tuned.x + tuned.width * xOffset,
+    y: tuned.y + tuned.height * yOffset
+  };
+}
+
 function setMapViewBox() {
   if (!elements.map) return;
   const group = elements.map.querySelector("g");
@@ -188,31 +322,83 @@ const ZOOM_EXCLUSIONS = {
   "North America": ["Canada"]
 };
 
-function calculateContinentBounds() {
-  state.continentBounds.clear();
+const ZOOM_GROUPS = {
+  "Caribbean and Central America": [
+    "Antigua and Barbuda",
+    "Bahamas",
+    "Barbados",
+    "Belize",
+    "Costa Rica",
+    "Cuba",
+    "Dominica",
+    "Dominican Republic",
+    "El Salvador",
+    "Grenada",
+    "Guatemala",
+    "Haiti",
+    "Honduras",
+    "Jamaica",
+    "Mexico",
+    "Nicaragua",
+    "Panama",
+    "Saint Kitts and Nevis",
+    "Saint Lucia",
+    "Saint Vincent and the Grenadines",
+    "Trinidad and Tobago"
+  ],
+  "Middle East": [
+    "Bahrain",
+    "Iran",
+    "Iraq",
+    "Israel",
+    "Jordan",
+    "Kuwait",
+    "Lebanon",
+    "Oman",
+    "Palestine",
+    "Qatar",
+    "Saudi Arabia",
+    "Syria",
+    "United Arab Emirates",
+    "Yemen"
+  ]
+};
+
+const ZOOM_TUNING = {
+  "Caribbean and Central America": { pad: 20, scale: 0.75, xOffset: 0.08, yOffset: 0.08 },
+  "Europe": { pad: 18, cropTop: 0.13, scale: 0.82, xOffset: 0.02, yOffset: 0.04 },
+  "Middle East": { pad: 18, scale: 0.72, xOffset: 0.04, yOffset: 0.06 },
+  "Oceania": { pad: 12, scale: 0.55, xOffset: 0.1, yOffset: -0.04 }
+};
+
+/**
+ * Returns countries that should be included when framing a zoom region.
+ */
+function getZoomCountries(continent, countries) {
+  const exclusions = ZOOM_EXCLUSIONS[continent] || [];
+  return countries.filter((name) => !exclusions.includes(name));
+}
+
+/**
+ * Stores the calculated bounds for a named zoom region.
+ */
+function storeZoomBounds(name, countries) {
+  const settings = ZOOM_TUNING[name] || {};
+  const bounds = getCountryBounds(countries);
+  if (!bounds) return;
+  const padded = padBounds(bounds, settings.pad ?? 30);
+  state.zoomBounds.set(name, tuneBounds(padded, settings));
+}
+
+/**
+ * Calculates bounds for continent and custom regional zoom buttons.
+ */
+function calculateZoomBounds() {
+  state.zoomBounds.clear();
   Object.entries(CONTINENT_COUNTRIES).forEach(([continent, countries]) => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    let hasAny = false;
-    const exclusions = ZOOM_EXCLUSIONS[continent] || [];
-    countries.forEach((name) => {
-      if (exclusions.includes(name)) return;
-      const path = state.tileNodes.get(slugify(name));
-      if (!path) return;
-      hasAny = true;
-      const b = path.getBBox();
-      minX = Math.min(minX, b.x);
-      minY = Math.min(minY, b.y);
-      maxX = Math.max(maxX, b.x + b.width);
-      maxY = Math.max(maxY, b.y + b.height);
-    });
-    if (hasAny) {
-      const pad = 30;
-      state.continentBounds.set(continent, {
-        x: minX - pad, y: minY - pad,
-        width: maxX - minX + pad * 2, height: maxY - minY + pad * 2
-      });
-    }
+    storeZoomBounds(continent, getZoomCountries(continent, countries));
   });
+  Object.entries(ZOOM_GROUPS).forEach(([name, countries]) => storeZoomBounds(name, countries));
 }
 
 function animateViewBox(targetViewBox) {
@@ -235,21 +421,68 @@ function animateViewBox(targetViewBox) {
 }
 
 function zoomToContinent(continent) {
-  const bounds = state.continentBounds.get(continent);
-  if (elements.map && bounds) animateViewBox(fitBoundsToContainer(bounds));
+  const bounds = state.zoomBounds.get(continent);
+  if (!elements.map || !bounds) return;
+  animateViewBox(fitBoundsToContainer(bounds));
+  setActiveZoom(continent);
+}
+
+function getZoomRegionForCountry(name, continent) {
+  const customRegion = Object.entries(ZOOM_GROUPS).find(([, countries]) => countries.includes(name));
+  return customRegion ? customRegion[0] : continent;
 }
 
 function zoomToFullMap() {
   if (!elements.map || !state.originalViewBox) return;
   const parts = state.originalViewBox.split(" ").map(Number);
   animateViewBox(fitBoundsToContainer({ x: parts[0], y: parts[1], width: parts[2], height: parts[3] }));
+  setActiveZoom("world");
+}
+
+/**
+ * Marks the currently selected zoom button and toggles zoom-only overlays.
+ */
+function setActiveZoom(region) {
+  document.querySelectorAll(".zoom-buttons button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.zoom === region);
+  });
+  if (elements.icelandInset) elements.icelandInset.classList.toggle("active", region === "Europe");
 }
 
 function configureMap() {
   if (!elements.map) return;
   mapCountriesToSvg(buildSvgIndex());
   setMapViewBox();
-  calculateContinentBounds();
+  calculateZoomBounds();
+  buildIcelandInset();
+  setActiveZoom("world");
+}
+
+/**
+ * Builds the separate Iceland inset shown with the Europe zoom.
+ */
+function buildIcelandInset() {
+  if (!elements.icelandInset || !elements.map) return;
+  const path = state.tileNodes.get(slugify("Iceland"));
+  if (!path) return;
+  const box = path.getBBox();
+  const pad = Math.max(box.width, box.height) * 0.35;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `${box.x - pad} ${box.y - pad} ${box.width + pad * 2} ${box.height + pad * 2}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Iceland inset");
+  svg.appendChild(path.cloneNode(true));
+  elements.icelandInset.replaceChildren(svg);
+  refreshIcelandInset();
+}
+
+/**
+ * Mirrors Iceland's found state into the Europe inset clone.
+ */
+function refreshIcelandInset() {
+  if (!elements.icelandInset) return;
+  const clone = elements.icelandInset.querySelector(".land");
+  if (clone) clone.classList.toggle("found", state.found.has(slugify("Iceland")));
 }
 
 // ─── Continent Lists ──────────────────────────────────────────────────────────
@@ -393,7 +626,8 @@ function markFound(slug) {
     listItem.classList.add("found");
   }
 
-  zoomToContinent(entry.continent);
+  if (slug === slugify("Iceland")) refreshIcelandInset();
+  zoomToContinent(getZoomRegionForCountry(entry.name, entry.continent));
   showGoldStar();
 }
 
@@ -457,6 +691,7 @@ function resetGame() {
   state.tileNodes.forEach((tile) => tile.classList.remove("found"));
   state.territoryNodes.forEach((ts) => ts.forEach((t) => t.classList.remove("found")));
   state.listNodes.forEach((item) => { item.textContent = "-"; item.classList.remove("found"); });
+  refreshIcelandInset();
 
   updateProgress();
   zoomToFullMap();
