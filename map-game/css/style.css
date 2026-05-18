@@ -418,10 +418,63 @@ input[type="text"]:disabled {
   box-shadow: var(--shadow);
 }
 
+.leaderboard-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
 .leaderboard-panel h2 {
-  margin: 0 0 18px;
+  margin: 0 0 6px;
   font-size: 1.5rem;
   letter-spacing: 0.04em;
+}
+
+.leaderboard-sync-status {
+  margin: 0;
+  color: var(--muted);
+  font-family: "Space Grotesk", "Arial", sans-serif;
+  font-size: 0.9rem;
+}
+
+.leaderboard-sync-status.warn {
+  color: #9b552a;
+  font-weight: 600;
+}
+
+.leaderboard-sync-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 520px;
+  font-family: "Space Grotesk", "Arial", sans-serif;
+}
+
+.leaderboard-sync-controls button {
+  border: 1px solid rgba(27, 29, 31, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: "Space Grotesk", "Arial", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.leaderboard-sync-controls button:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--accent-2);
+  transform: translateY(-1px);
+}
+
+.leaderboard-sync-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .leaderboard-table {
@@ -592,7 +645,15 @@ input[type="text"]:disabled {
     text-align: left;
   }
 
+  .leaderboard-header {
+    grid-template-columns: 1fr;
+  }
+
   .stats {
+    justify-content: start;
+  }
+
+  .leaderboard-sync-controls {
     justify-content: start;
   }
 

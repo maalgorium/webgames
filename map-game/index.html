@@ -55,7 +55,20 @@
 
       <!-- ── Leaderboard ───────────────────────────────────────────────────── -->
       <section class="leaderboard-panel">
-        <h2>Leaderboard</h2>
+        <div class="leaderboard-header">
+          <div>
+            <h2>Leaderboard</h2>
+            <p class="leaderboard-sync-status" id="leaderboard-sync-status">
+              Local leaderboard.
+            </p>
+          </div>
+          <div class="leaderboard-sync-controls" aria-label="Leaderboard sync controls">
+            <button type="button" id="leaderboard-connect">Connect file</button>
+            <button type="button" id="leaderboard-create">Create file</button>
+            <button type="button" id="leaderboard-refresh">Refresh</button>
+            <button type="button" id="leaderboard-disconnect">Disconnect</button>
+          </div>
+        </div>
         <table class="leaderboard-table" id="leaderboard-table">
           <thead>
             <tr>

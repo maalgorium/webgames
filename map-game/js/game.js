@@ -720,14 +720,19 @@ function showWinModal(finalSeconds) {
     skipBtn.removeEventListener("click", close);
   }
 
-  function save() {
+  async function save() {
     const name = nameInput.value.trim() || "Anonymous";
-    leaderboard.addScore({
-      name,
-      countries: state.found.size,
-      total: state.total,
-      seconds: finalSeconds  // use captured value, not re-computed
-    });
+    saveBtn.disabled = true;
+    try {
+      await leaderboard.addScore({
+        name,
+        countries: state.found.size,
+        total: state.total,
+        seconds: finalSeconds  // use captured value, not re-computed
+      });
+    } finally {
+      saveBtn.disabled = false;
+    }
     close();
   }
 
@@ -774,7 +779,7 @@ function init() {
 
   buildLists();
   updateProgress();
-  leaderboard.render();
+  leaderboard.init();
 
   elements.input.addEventListener("input", handleInput);
   elements.input.addEventListener("keydown", handleKeydown);
